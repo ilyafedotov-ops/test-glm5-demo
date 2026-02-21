@@ -356,11 +356,9 @@ export function PieChartComponent({
   showLabels = true,
   showPercentage = true,
 }: PieChartProps) {
-  if (loading) return <ChartSkeleton height={height} />;
+  const total = data.reduce((sum, item) => sum + ((item["value"] as number) || 0), 0);
 
-  const total = useMemo(() => {
-    return data.reduce((sum, item) => sum + ((item["value"] as number) || 0), 0);
-  }, [data]);
+  if (loading) return <ChartSkeleton height={height} />;
 
   return (
     <div className={clsx("relative", className)}>

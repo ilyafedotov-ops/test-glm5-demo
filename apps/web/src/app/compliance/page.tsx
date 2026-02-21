@@ -184,9 +184,7 @@ export default function CompliancePage() {
     createMutation.mutate();
   };
 
-  if (!isAuthenticated) return null;
-
-  const policies = data?.data || [];
+  const policies = useMemo(() => data?.data ?? [], [data?.data]);
   const activePolicies = policies.filter((p) => p.status === "active").length;
 
   const filteredPolicies = useMemo(() => {
@@ -233,6 +231,8 @@ export default function CompliancePage() {
       gradient: "from-violet-500 to-indigo-500",
     },
   ];
+
+  if (!isAuthenticated) return null;
 
   return (
     <div className="p-8 space-y-8">

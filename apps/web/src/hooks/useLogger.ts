@@ -4,7 +4,7 @@
  * Provides easy access to the logger with component context
  */
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { logger, FrontendLogger } from '@/lib/logger';
 
 interface UseLoggerOptions {
@@ -33,7 +33,10 @@ export function useLogger(options: UseLoggerOptions = {}): UseLoggerReturn {
   const { component, logLifecycle = false, logRenderCount = false } = options;
   
   const renderCount = useRef(0);
-  const componentLogger = component ? logger.child(component) : logger;
+  const componentLogger = useMemo(
+    () => (component ? logger.child(component) : logger),
+    [component]
+  );
 
   // Log render count
   if (logRenderCount) {
@@ -42,20 +45,22 @@ export function useLogger(options: UseLoggerOptions = {}): UseLoggerReturn {
 
   // Log mount/unmount
   useEffect(() => {
+    const initialRenderCount = renderCount.current;
+
     if (logLifecycle && component) {
       componentLogger.debug(`Component mounted: ${component}`, {
-        renderCount: renderCount.current,
+        renderCount: initialRenderCount,
       });
     }
 
     return () => {
       if (logLifecycle && component) {
         componentLogger.debug(`Component unmounting: ${component}`, {
-          renderCount: renderCount.current,
+          renderCount: initialRenderCount,
         });
       }
     };
-  }, [component, logLifecycle]);
+  }, [component, componentLogger, logLifecycle]);
 
   // Log render if tracking render count
   useEffect(() => {
@@ -64,42 +69,42 @@ export function useLogger(options: UseLoggerOptions = {}): UseLoggerReturn {
         renderCount: renderCount.current,
       });
     }
-  });
+  }, [component, componentLogger, logRenderCount]);
 
   // Memoized log functions with component context
   const log = useCallback<FrontendLogger['info']>(
     (message, metadata) => componentLogger.info(message, { component, ...metadata }),
-    [component]
+    [component, componentLogger]
   );
 
   const debug = useCallback<FrontendLogger['debug']>(
     (message, metadata) => componentLogger.debug(message, { component, ...metadata }),
-    [component]
+    [component, componentLogger]
   );
 
   const info = useCallback<FrontendLogger['info']>(
     (message, metadata) => componentLogger.info(message, { component, ...metadata }),
-    [component]
+    [component, componentLogger]
   );
 
   const warn = useCallback<FrontendLogger['warn']>(
     (message, metadata) => componentLogger.warn(message, { component, ...metadata }),
-    [component]
+    [component, componentLogger]
   );
 
   const error = useCallback<FrontendLogger['error']>(
     (message, err, metadata) => componentLogger.error(message, err, { component, ...metadata }),
-    [component]
+    [component, componentLogger]
   );
 
   const logAction = useCallback<FrontendLogger['logAction']>(
     (action, details) => componentLogger.info(`User action: ${action}`, { action, component, ...details }),
-    [component]
+    [component, componentLogger]
   );
 
   const logPerformance = useCallback<FrontendLogger['logPerformance']>(
     (metric, value, unit) => componentLogger.debug(`Performance: ${metric} = ${value}${unit}`, { metric, value, unit }),
-    []
+    [componentLogger]
   );
 
   return {

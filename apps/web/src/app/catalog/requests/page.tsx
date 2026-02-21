@@ -160,7 +160,7 @@ export default function ServiceRequestsPage() {
     },
   });
 
-  const requests = data?.data || [];
+  const requests = useMemo(() => data?.data ?? [], [data?.data]);
   const filteredRequests = useMemo(() => {
     if (!search) return requests;
     const term = search.toLowerCase();

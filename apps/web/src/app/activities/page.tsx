@@ -176,7 +176,7 @@ export default function ActivitiesPage() {
     retry: false,
   });
 
-  const items = data?.data || [];
+  const items = useMemo(() => data?.data ?? [], [data?.data]);
   const orderedItems = useMemo(() => {
     const sorted = [...items].sort((left, right) => {
       const leftTime = new Date(left.createdAt).getTime();

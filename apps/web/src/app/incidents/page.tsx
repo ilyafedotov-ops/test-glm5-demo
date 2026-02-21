@@ -735,9 +735,7 @@ export default function IncidentsPage() {
     );
   };
 
-  if (!isAuthenticated) return null;
-
-  const incidents = data?.data || [];
+  const incidents = useMemo(() => data?.data ?? [], [data?.data]);
   const filteredIncidents = incidents;
 
   const incidentStats = useMemo(() => {
@@ -788,6 +786,8 @@ export default function IncidentsPage() {
       !!task.workflowId &&
       ["pending", "in_progress"].includes(task.status)
   ).length;
+
+  if (!isAuthenticated) return null;
 
   return (
     <div className="space-y-8 p-4 sm:p-6 lg:p-8">

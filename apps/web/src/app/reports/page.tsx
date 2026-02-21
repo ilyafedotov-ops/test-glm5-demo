@@ -366,8 +366,6 @@ export default function ReportsPage() {
     refetchJobs();
   };
 
-  if (!isAuthenticated) return null;
-
   const jobs = jobsData?.data || [];
 
   const filteredJobs = jobs;
@@ -403,6 +401,8 @@ export default function ReportsPage() {
     ],
     [correlationMap?.crossDomain.linkageCoveragePercent, pendingJobs, successRate]
   );
+
+  if (!isAuthenticated) return null;
 
   return (
     <div className="space-y-8 p-4 sm:p-6 lg:p-8">

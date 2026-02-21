@@ -12,6 +12,25 @@ interface SLAIndicatorProps {
 
 type SLAStatus = "on_track" | "at_risk" | "breached";
 
+function formatTimeRemaining(mins: number): string {
+  if (mins < 60) {
+    return `${mins}m`;
+  } else if (mins < 1440) {
+    const hours = Math.floor(mins / 60);
+    const minutes = mins % 60;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  } else {
+    const days = Math.floor(mins / 1440);
+    const hours = Math.floor((mins % 1440) / 60);
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  }
+}
+
+function formatOverdue(mins: number): string {
+  const prefix = mins > 0 ? "+" : "";
+  return `${prefix}${formatTimeRemaining(mins)}`;
+}
+
 export function SLAIndicator({ dueAt, type = "response", compact = false }: SLAIndicatorProps) {
   const [status, setStatus] = useState<SLAStatus>("on_track");
   const [timeRemaining, setTimeRemaining] = useState<string>("");
@@ -41,25 +60,6 @@ export function SLAIndicator({ dueAt, type = "response", compact = false }: SLAI
 
     return () => clearInterval(interval);
   }, [dueAt]);
-
-  const formatTimeRemaining = (mins: number): string => {
-    if (mins < 60) {
-      return `${mins}m`;
-    } else if (mins < 1440) {
-      const hours = Math.floor(mins / 60);
-      const minutes = mins % 60;
-      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-    } else {
-      const days = Math.floor(mins / 1440);
-      const hours = Math.floor((mins % 1440) / 60);
-      return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
-    }
-  };
-
-  const formatOverdue = (mins: number): string => {
-    const prefix = mins > 0 ? "+" : "";
-    return `${prefix}${formatTimeRemaining(mins)}`;
-  };
 
   const config = {
     on_track: {
