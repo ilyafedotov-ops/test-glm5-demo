@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsString, IsOptional, IsObject, IsUUID } from "class-validator";
+import { IsString, IsOptional, IsObject } from "class-validator";
 
 export class AdvanceWorkflowDto {
   @ApiPropertyOptional({ description: "Action to take (approve, reject, skip, retry)" })

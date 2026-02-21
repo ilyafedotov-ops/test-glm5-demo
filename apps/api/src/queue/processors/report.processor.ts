@@ -64,7 +64,7 @@ export class ReportProcessor implements OnModuleInit {
       await job.updateProgress(50);
 
       // Convert to desired format
-      const content = format === "json"
+      const _content = format === "json"
         ? JSON.stringify(reportData, null, 2)
         : this.convertToCSV(reportData);
 
@@ -103,7 +103,7 @@ export class ReportProcessor implements OnModuleInit {
     }
   }
 
-  private async generateIncidentSummary(organizationId: string, params: any): Promise<any> {
+  private async generateIncidentSummary(organizationId: string, _params: any): Promise<any> {
     // Get incident statistics
     const incidents = await this.prisma.incident.groupBy({
       by: ["status", "priority"],
@@ -119,7 +119,7 @@ export class ReportProcessor implements OnModuleInit {
     };
   }
 
-  private async generateSLACompliance(organizationId: string, params: any): Promise<any> {
+  private async generateSLACompliance(organizationId: string, _params: any): Promise<any> {
     // SLA compliance report
     return {
       generatedAt: new Date().toISOString(),
@@ -132,7 +132,7 @@ export class ReportProcessor implements OnModuleInit {
     };
   }
 
-  private async generateUserActivity(organizationId: string, params: any): Promise<any> {
+  private async generateUserActivity(organizationId: string, _params: any): Promise<any> {
     // User activity report
     const users = await this.prisma.user.findMany({
       where: { organizationId },
@@ -170,7 +170,7 @@ export class ReportProcessor implements OnModuleInit {
     };
   }
 
-  private async generateItilKpi(organizationId: string, params: any): Promise<any> {
+  private async generateItilKpi(organizationId: string, _params: any): Promise<any> {
     const incidents = await this.prisma.incident.findMany({
       where: { organizationId },
       select: {
@@ -247,7 +247,7 @@ export class ReportProcessor implements OnModuleInit {
     };
   }
 
-  private async generateIncidentLifecycle(organizationId: string, params: any): Promise<any> {
+  private async generateIncidentLifecycle(organizationId: string, _params: any): Promise<any> {
     const transitions = await this.prisma.incidentTimeline.findMany({
       where: {
         incident: { organizationId },
@@ -265,7 +265,7 @@ export class ReportProcessor implements OnModuleInit {
     };
   }
 
-  private async generateWorkflowKpi(organizationId: string, params: any): Promise<any> {
+  private async generateWorkflowKpi(organizationId: string, _params: any): Promise<any> {
     const [workflowTasks, workflowIdsFromTasks, workflowIdsFromIncidentLinks] = await Promise.all([
       this.prisma.task.groupBy({
         by: ["status"],

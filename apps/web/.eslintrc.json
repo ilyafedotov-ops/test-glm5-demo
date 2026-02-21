@@ -1,0 +1,20 @@
+{
+  "extends": [
+    "../../.eslintrc.cjs",
+    "next/core-web-vitals"
+  ],
+  "settings": {
+    "next": {
+      "rootDir": "apps/web"
+    }
+  },
+  "rules": {
+    "@next/next/no-html-link-for-pages": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "react-hooks/rules-of-hooks": "warn",
+    "react/no-unescaped-entities": "warn",
+    "@typescript-eslint/no-require-imports": "warn",
+    "no-empty": "warn",
+    "prefer-const": "warn"
+  }
+}

@@ -17,7 +17,7 @@ export class EmailProcessor implements OnModuleInit {
   async process(job: Job<EmailJobData>): Promise<any> {
     this.logger.log(`Processing email job: ${job.id}`);
 
-    const { to, subject, template, data } = job.data;
+    const { to, subject, template } = job.data;
 
     try {
       // In production, integrate with email service (SendGrid, AWS SES, etc.)

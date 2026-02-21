@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { IsString, IsOptional, IsUUID, IsInt, Min, IsEnum } from "class-validator";
-import { CreateTaskDto, TaskStatus } from "./create-task.dto";
+import { IsString, IsOptional, IsUUID, IsInt, Min } from "class-validator";
+import { CreateTaskDto } from "./create-task.dto";
 
 export class UpdateTaskDto extends PartialType(CreateTaskDto) {}
 

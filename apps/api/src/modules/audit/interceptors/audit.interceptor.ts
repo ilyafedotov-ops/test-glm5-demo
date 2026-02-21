@@ -101,7 +101,7 @@ export class AuditInterceptor implements NestInterceptor {
           where: { id: resourceId },
         });
       }
-    } catch (error) {
+    } catch {
       // Ignore errors in capturing previous value
     }
 

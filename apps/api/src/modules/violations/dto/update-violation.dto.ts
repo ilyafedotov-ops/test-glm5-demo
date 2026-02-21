@@ -1,6 +1,6 @@
 import { ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import { IsOptional, IsString, IsUUID, IsEnum } from "class-validator";
-import { CreateViolationDto, ViolationSeverity, ViolationStatus } from "./create-violation.dto";
+import { CreateViolationDto, ViolationStatus } from "./create-violation.dto";
 
 export class UpdateViolationDto extends PartialType(CreateViolationDto) {
   @ApiPropertyOptional({ description: "Violation status", enum: ViolationStatus })

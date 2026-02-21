@@ -1,6 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
-import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class TicketsService {
@@ -23,8 +22,6 @@ export class TicketsService {
     };
 
     const prefix = prefixMap[type];
-    const countField = `${type}Count` as keyof Prisma.TicketCounterWhereInput;
-
     // Use transaction to ensure atomicity
     const result = await this.prisma.$transaction(async (tx) => {
       // Get or create counter

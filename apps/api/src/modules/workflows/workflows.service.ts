@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
-import { CreateWorkflowDto, WorkflowStatus, WorkflowType } from "./dto/create-workflow.dto";
+import { CreateWorkflowDto, WorkflowStatus } from "./dto/create-workflow.dto";
 import { AdvanceWorkflowDto, CancelWorkflowDto, RollbackWorkflowDto } from "./dto/advance-workflow.dto";
 import { WorkflowQueryDto } from "./dto/workflow-query.dto";
 import { WorkflowEntity, WorkflowStep } from "./entities/workflow.entity";

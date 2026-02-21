@@ -186,7 +186,7 @@ export class ViolationsService {
     id: string,
     organizationId: string,
     userId: string,
-    dto: AcknowledgeViolationDto
+    _dto: AcknowledgeViolationDto
   ): Promise<ViolationEntity> {
     const violation = await this.prisma.violation.findFirst({
       where: { id, organizationId },

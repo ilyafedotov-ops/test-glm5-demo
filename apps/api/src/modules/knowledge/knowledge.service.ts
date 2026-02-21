@@ -231,7 +231,7 @@ export class KnowledgeService {
   }
 
   async markHelpful(organizationId: string, id: string) {
-    const article = await this.findOne(organizationId, id, false);
+    await this.findOne(organizationId, id, false);
 
     return this.prisma.knowledgeArticle.update({
       where: { id },
@@ -240,7 +240,7 @@ export class KnowledgeService {
   }
 
   async markNotHelpful(organizationId: string, id: string) {
-    const article = await this.findOne(organizationId, id, false);
+    await this.findOne(organizationId, id, false);
 
     return this.prisma.knowledgeArticle.update({
       where: { id },
