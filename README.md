@@ -33,25 +33,106 @@ NexusOps provides unified operations workflows including:
 
 ## Architecture Overview
 
-```text
-                           ┌──────────────────────────────┐
-                           │         Next.js Web          │
-                           │  apps/web (App Router, UI)   │
-                           └──────────────┬───────────────┘
-                                          │ HTTP / JSON
-                                          ▼
-                           ┌──────────────────────────────┐
-                           │         NestJS API           │
-                           │ apps/api (/api + Swagger)    │
-                           └───────┬───────────┬──────────┘
-                                   │           │
-                          Prisma ORM          BullMQ/Cache
-                                   │           │
-                                   ▼           ▼
-                       ┌────────────────┐  ┌──────────────┐
-                       │   PostgreSQL   │  │    Redis     │
-                       │  (system data) │  │ queue + cache│
-                       └────────────────┘  └──────────────┘
+```mermaid
+flowchart LR
+    Browser["User Browser"]
+    Web["apps/web<br/>Next.js 14 App Router"]
+    Api["apps/api<br/>NestJS API (/api)"]
+    Pg[("PostgreSQL<br/>System of Record")]
+    Redis[("Redis<br/>Cache + Queue Backend")]
+    Queue["BullMQ Processors<br/>notifications, reports, email"]
+    Shared["Shared Packages<br/>@nexusops/contracts, @nexusops/ui, @nexusops/logging"]
+
+    Browser -->|HTTP| Web
+    Web -->|REST JSON| Api
+    Api -->|Prisma| Pg
+    Api -->|Cache + Jobs| Redis
+    Api --> Queue
+    Queue --> Redis
+    Web -. consumes .-> Shared
+    Api -. consumes .-> Shared
+```
+
+## Mermaid Diagrams
+
+### Container Topology
+
+```mermaid
+flowchart TB
+    subgraph DockerCompose["docker-compose stack"]
+      WebC["nexusops-web<br/>:3000"]
+      ApiC["nexusops-api<br/>:3001"]
+      PgC["nexusops-postgres<br/>:5433 -> 5432"]
+      RedisC["nexusops-redis<br/>:6379"]
+    end
+
+    User["Local User"] --> WebC
+    WebC --> ApiC
+    ApiC --> PgC
+    ApiC --> RedisC
+```
+
+### Request Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as Web (Next.js)
+    participant A as API (NestJS)
+    participant DB as PostgreSQL
+    participant R as Redis/BullMQ
+
+    U->>W: Submit form (Incident/Problem/Task)
+    W->>A: POST /api/* with JWT
+    A->>A: Validate DTO + RBAC guards
+    A->>DB: Persist entity via Prisma
+    A->>R: Enqueue async jobs (optional)
+    A-->>W: 200/201 + payload
+    W-->>U: Updated UI state
+```
+
+### Backend Domain Map
+
+```mermaid
+flowchart LR
+    subgraph Core["Core ITIL Domains"]
+      Inc["Incidents"]
+      Prob["Problems"]
+      Chg["Changes"]
+      Task["Tasks"]
+      Wf["Workflows"]
+    end
+
+    subgraph Governance["Governance & Compliance"]
+      Pol["Policies"]
+      Viol["Violations"]
+      Audit["Audit"]
+      Adm["Admin Governance"]
+      CMDB["Configuration Items (CMDB)"]
+      SLA["SLA Dashboard"]
+    end
+
+    subgraph Platform["Platform Services"]
+      Auth["Auth + RBAC"]
+      Notif["Notifications"]
+      Rep["Reports"]
+      Kb["Knowledge"]
+      Cat["Service Catalog"]
+      Act["Activities"]
+      Mon["Monitoring"]
+    end
+
+    Inc --> Prob
+    Prob --> Chg
+    Chg --> Task
+    Task --> Wf
+
+    Auth --> Core
+    Auth --> Governance
+    Auth --> Platform
+    Core --> Audit
+    Governance --> Audit
+    Platform --> Audit
 ```
 
 ## Monorepo Structure
@@ -214,4 +295,3 @@ Schema is located at `apps/api/prisma/schema.prisma`.
 
 - Build artifacts in `dist/` and `.next/` are generated and should not be edited manually.
 - `apps/worker` currently acts as a scaffold for future background-worker expansion.
-
