@@ -279,8 +279,12 @@ export default function DashboardPage() {
               </div>
             ))}
             {(!data.majorIncidentSummary?.incidents || data.majorIncidentSummary.incidents.length === 0) && (
-              <div className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-                No active major incidents.
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center">
+                <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-green-500/20 flex items-center justify-center">
+                  <ShieldCheck className="h-6 w-6 text-emerald-500" />
+                </div>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All clear</p>
+                <p className="text-xs text-muted-foreground mt-1">No active major incidents at this time</p>
               </div>
             )}
           </CardContent>
@@ -308,8 +312,12 @@ export default function DashboardPage() {
               </div>
             ))}
             {(!data.topRiskServices || data.topRiskServices.length === 0) && (
-              <div className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-                No service risk data available.
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 text-center">
+                <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+                  <Gauge className="h-6 w-6 text-amber-500" />
+                </div>
+                <p className="text-sm font-medium">No service risk data yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Risk scores will appear once services are configured</p>
               </div>
             )}
           </CardContent>
@@ -337,8 +345,12 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="rounded-xl bg-muted/50 p-4 text-sm text-muted-foreground">
-                  No SLA targets configured. Configure in Admin settings.
+                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-6 text-center">
+                  <div className="mx-auto mb-3 h-12 w-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center">
+                    <Target className="h-6 w-6 text-cyan-500" />
+                  </div>
+                  <p className="text-sm font-medium">No SLA targets configured</p>
+                  <p className="text-xs text-muted-foreground mt-1">Define response and resolution targets by priority</p>
                 </div>
               )}
               <Button variant="ghost" size="sm" onClick={() => router.push("/sla-dashboard")}>
@@ -439,7 +451,13 @@ export default function DashboardPage() {
               </div>
             ))}
             {(!data.recentActivity || data.recentActivity.length === 0) && (
-              <div className="text-sm text-muted-foreground">No recent cross-domain activity</div>
+              <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-6 text-center">
+                <div className="mx-auto mb-3 h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5 text-violet-500" />
+                </div>
+                <p className="text-sm font-medium">No recent activity</p>
+                <p className="text-xs text-muted-foreground mt-1">Cross-domain activity will appear here</p>
+              </div>
             )}
             <div className="grid grid-cols-2 gap-2 pt-2">
               <Button variant="glass" onClick={() => router.push("/workflows")}>
@@ -505,7 +523,7 @@ export default function DashboardPage() {
                   {data.avgResolutionTimeHours}h
                 </span>
               </div>
-              
+
               <div>
                 <div className="flex justify-between mb-3">
                   <span className="text-sm font-medium text-muted-foreground">
@@ -514,8 +532,8 @@ export default function DashboardPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   {Object.entries(data.incidentsByStatus).map(([status, count]) => (
-                    <div 
-                      key={status} 
+                    <div
+                      key={status}
                       className="flex flex-col items-center justify-center p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                     >
                       <span className="text-2xl font-bold">{count}</span>

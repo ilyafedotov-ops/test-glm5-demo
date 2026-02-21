@@ -517,7 +517,12 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title={webhookDialogTitle}>
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title={webhookDialogTitle}
+        size={editingWebhook ? "md" : "lg"}
+      >
         <div className="space-y-4">
           <Input
             label="Name"

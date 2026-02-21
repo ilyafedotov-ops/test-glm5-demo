@@ -401,6 +401,7 @@ export default function ProblemsPage() {
           setFormError("");
         }}
         title="Create New Problem"
+        size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-5 p-6">
           {formError && (

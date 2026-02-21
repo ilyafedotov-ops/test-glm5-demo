@@ -440,7 +440,7 @@ export default function CompliancePage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Policy">
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Policy" size="lg">
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <div className="p-4 text-sm text-destructive bg-destructive/10 rounded-xl border border-destructive/20">

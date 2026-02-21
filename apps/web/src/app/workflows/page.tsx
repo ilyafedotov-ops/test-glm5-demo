@@ -947,6 +947,7 @@ export default function WorkflowsPage() {
           setError("");
         }}
         title="Workflow Creation Wizard"
+        size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (

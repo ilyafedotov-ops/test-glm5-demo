@@ -1341,6 +1341,7 @@ export default function AdminPage() {
         open={createUserDialogOpen}
         onClose={() => setCreateUserDialogOpen(false)}
         title="Invite New User"
+        size="lg"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
@@ -1412,6 +1413,7 @@ export default function AdminPage() {
         open={createRoleDialogOpen}
         onClose={() => setCreateRoleDialogOpen(false)}
         title="Create New Role"
+        size="lg"
       >
         <div className="space-y-6">
           <Input
@@ -1564,6 +1566,7 @@ export default function AdminPage() {
         open={createTeamDialogOpen}
         onClose={() => setCreateTeamDialogOpen(false)}
         title="Create New Team"
+        size="lg"
       >
         <div className="space-y-6">
           <Input
@@ -1708,6 +1711,7 @@ export default function AdminPage() {
         open={createPrivilegedDialogOpen}
         onClose={() => setCreatePrivilegedDialogOpen(false)}
         title="New Privileged Access Request"
+        size="lg"
       >
         <div className="space-y-4">
           <Select

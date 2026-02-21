@@ -70,6 +70,7 @@ export default function KnowledgeBasePage() {
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     article.content.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+  const hasActiveFilters = Boolean(searchTerm.trim()) || selectedCategory !== null;
 
   const categories = [...new Set(articles?.data?.map((article) => article.category) || [])];
 
@@ -198,15 +199,38 @@ export default function KnowledgeBasePage() {
 
       {filteredArticles.length === 0 && !isLoading && (
         <Card>
-          <CardContent className="p-12 text-center">
-            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-lg font-medium">No articles found</p>
-            <p className="text-sm text-muted-foreground">
-              {searchTerm ? "Try a different search term" : "Be the first to create an article"}
+          <CardContent className="p-16 text-center">
+            <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+              <BookOpen className="h-8 w-8 text-violet-500" />
+            </div>
+            <p className="text-lg font-semibold">
+              {hasActiveFilters ? "No matching articles" : "Your knowledge base is empty"}
             </p>
-            <Button className="mt-4" onClick={() => router.push("/knowledge/new")}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Article
+            <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+              {hasActiveFilters
+                ? "Try adjusting your search terms or clear the active filters"
+                : "Start building your team's knowledge base — document solutions, how-tos, and reference material"}
+            </p>
+            <Button
+              variant="gradient"
+              className="mt-6"
+              onClick={() => {
+                if (hasActiveFilters) {
+                  setSearchTerm("");
+                  setSelectedCategory(null);
+                  return;
+                }
+                router.push("/knowledge/new");
+              }}
+            >
+              {hasActiveFilters ? (
+                "Clear Filters"
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Article
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>

@@ -637,7 +637,12 @@ export default function PolicyDetailPage() {
         )}
       </Dialog>
 
-      <Dialog open={exceptionDialogOpen} onClose={() => setExceptionDialogOpen(false)} title="Request Policy Exception">
+      <Dialog
+        open={exceptionDialogOpen}
+        onClose={() => setExceptionDialogOpen(false)}
+        title="Request Policy Exception"
+        size="lg"
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();

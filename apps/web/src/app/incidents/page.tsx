@@ -344,14 +344,14 @@ async function exportIncidentsCSV(token: string, status?: string) {
   if (status) {
     searchParams.set("status", status);
   }
-  
+
   const query = searchParams.toString();
   const res = await fetch(`${API_URL}/incidents/export/csv${query ? `?${query}` : ""}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  
+
   if (!res.ok) throw new Error("Failed to export incidents");
-  
+
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -756,31 +756,31 @@ export default function IncidentsPage() {
 
   const selectedIncidentRelatedRecords = selectedIncident
     ? [
-        selectedIncident.assignee
-          ? {
-              type: "user",
-              id: selectedIncident.assignee.id,
-              systemRecordId: `user:${selectedIncident.assignee.id}`,
-              relationship: "assigned_to",
-            }
-          : null,
-        selectedIncident.reporter
-          ? {
-              type: "user",
-              id: selectedIncident.reporter.id,
-              systemRecordId: `user:${selectedIncident.reporter.id}`,
-              relationship: "reported_by",
-            }
-          : null,
-        selectedIncident.team
-          ? {
-              type: "team",
-              id: selectedIncident.team.id,
-              systemRecordId: `team:${selectedIncident.team.id}`,
-              relationship: "owned_by_team",
-            }
-          : null,
-      ].filter(Boolean) as Array<{ type: string; id: string; systemRecordId: string; relationship?: string }>
+      selectedIncident.assignee
+        ? {
+          type: "user",
+          id: selectedIncident.assignee.id,
+          systemRecordId: `user:${selectedIncident.assignee.id}`,
+          relationship: "assigned_to",
+        }
+        : null,
+      selectedIncident.reporter
+        ? {
+          type: "user",
+          id: selectedIncident.reporter.id,
+          systemRecordId: `user:${selectedIncident.reporter.id}`,
+          relationship: "reported_by",
+        }
+        : null,
+      selectedIncident.team
+        ? {
+          type: "team",
+          id: selectedIncident.team.id,
+          systemRecordId: `team:${selectedIncident.team.id}`,
+          relationship: "owned_by_team",
+        }
+        : null,
+    ].filter(Boolean) as Array<{ type: string; id: string; systemRecordId: string; relationship?: string }>
     : [];
   const selectedIncidentData = selectedIncidentDetail || selectedIncident;
   const openWorkflowTaskCount = (selectedIncidentData?.tasks || []).filter(
@@ -828,55 +828,6 @@ export default function IncidentsPage() {
         <OperationsMetricCard label="Active Queue" value={incidentStats.active} icon={Clock} tone="amber" valueClassName="text-amber-500" />
         <OperationsMetricCard label="Resolved/Closed" value={incidentStats.resolved} icon={AlertTriangle} tone="emerald" valueClassName="text-emerald-500" />
         <OperationsMetricCard label="SLA Breaches" value={incidentStats.breached} icon={Filter} tone="cyan" valueClassName="text-cyan-500" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <StatusMatrix
-          title="Incident Correlation Health"
-          items={[
-            {
-              name: "Active Ratio",
-              value:
-                incidents.length > 0
-                  ? Math.round((incidentStats.active / incidents.length) * 100)
-                  : 0,
-              target: 100,
-              hint: "Incidents currently in working statuses",
-            },
-            {
-              name: "Resolved Ratio",
-              value:
-                incidents.length > 0
-                  ? Math.round((incidentStats.resolved / incidents.length) * 100)
-                  : 0,
-              target: 100,
-              hint: "Incidents in resolved or closed state",
-            },
-            {
-              name: "Cross-domain Linkage",
-              value: correlationMap?.crossDomain.linkageCoveragePercent ?? 0,
-              target: 100,
-              hint: "Tasks linked to incidents/workflows/compliance entities",
-            },
-          ]}
-        />
-
-        <Card variant="glass" className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Linked Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(correlationMap?.recentActivity || []).slice(0, 5).map((activity) => (
-              <div key={activity.id} className="space-y-1 rounded-xl border border-border/60 bg-muted/30 p-3">
-                <div className="text-sm font-medium">{activity.title}</div>
-                <SystemRecordBadge value={activity.systemRecordId} compact />
-              </div>
-            ))}
-            {(!correlationMap?.recentActivity || correlationMap.recentActivity.length === 0) && (
-              <div className="text-sm text-muted-foreground">No recent linked activity</div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid gap-3 rounded-2xl border border-white/20 bg-white/30 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-slate-800/30 md:grid-cols-5">
@@ -998,6 +949,55 @@ export default function IncidentsPage() {
         </Button>
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-3">
+        <StatusMatrix
+          title="Incident Correlation Health"
+          items={[
+            {
+              name: "Active Ratio",
+              value:
+                incidents.length > 0
+                  ? Math.round((incidentStats.active / incidents.length) * 100)
+                  : 0,
+              target: 100,
+              hint: "Incidents currently in working statuses",
+            },
+            {
+              name: "Resolved Ratio",
+              value:
+                incidents.length > 0
+                  ? Math.round((incidentStats.resolved / incidents.length) * 100)
+                  : 0,
+              target: 100,
+              hint: "Incidents in resolved or closed state",
+            },
+            {
+              name: "Cross-domain Linkage",
+              value: correlationMap?.crossDomain.linkageCoveragePercent ?? 0,
+              target: 100,
+              hint: "Tasks linked to incidents/workflows/compliance entities",
+            },
+          ]}
+        />
+
+        <Card variant="glass" className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Linked Activity</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(correlationMap?.recentActivity || []).slice(0, 5).map((activity) => (
+              <div key={activity.id} className="space-y-1 rounded-xl border border-border/60 bg-muted/30 p-3">
+                <div className="text-sm font-medium">{activity.title}</div>
+                <SystemRecordBadge value={activity.systemRecordId} compact />
+              </div>
+            ))}
+            {(!correlationMap?.recentActivity || correlationMap.recentActivity.length === 0) && (
+              <div className="text-sm text-muted-foreground">No recent linked activity</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <Card variant="glass" className="animate-slide-up" style={{ animationDelay: "500ms" }}>
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-lg">
@@ -1091,7 +1091,7 @@ export default function IncidentsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Incident">
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Incident" size="lg">
         <form onSubmit={handleSubmit} className="space-y-5">
           {error ? (
             <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">

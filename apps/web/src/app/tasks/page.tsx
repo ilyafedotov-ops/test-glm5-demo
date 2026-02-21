@@ -947,7 +947,7 @@ export default function TasksPage() {
       )}
 
       {/* Create Task Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Task">
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Task" size="lg">
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">{error}</div>}
           <Input

@@ -449,6 +449,7 @@ export default function ConfigurationItemsPage() {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         title={editingItem ? "Edit Configuration Item" : "Add Configuration Item"}
+        size={editingItem ? "md" : "lg"}
       >
         <div className="space-y-4">
           <Input
