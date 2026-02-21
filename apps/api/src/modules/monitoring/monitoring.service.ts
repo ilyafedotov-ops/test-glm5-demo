@@ -1,5 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { readFile } from "node:fs/promises";
+import * as os from "node:os";
 import Redis from "ioredis";
 import { PrismaService } from "@/prisma/prisma.service";
 
@@ -25,6 +27,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   private metricsBuffer: MetricData[] = [];
   private flushInterval?: NodeJS.Timeout;
   private redisClient?: Redis;
+  private memoryLimitBytes?: number;
 
   // Simple in-memory metrics storage
   private counters: Map<string, number> = new Map();
@@ -92,10 +95,11 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
 
     // Memory check
     const memUsage = process.memoryUsage();
-    const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+    const memoryLimitBytes = await this.getMemoryLimitBytes();
+    const rssUsedPercent = (memUsage.rss / memoryLimitBytes) * 100;
     checks["memory"] = {
-      status: heapUsedPercent > 90 ? "unhealthy" : heapUsedPercent > 75 ? "degraded" : "healthy",
-      message: `Heap usage: ${heapUsedPercent.toFixed(1)}%`,
+      status: rssUsedPercent > 90 ? "unhealthy" : rssUsedPercent > 75 ? "degraded" : "healthy",
+      message: `RSS usage: ${rssUsedPercent.toFixed(1)}% (${this.toMiB(memUsage.rss)}MiB/${this.toMiB(memoryLimitBytes)}MiB)`,
     };
 
     // Determine overall status
@@ -295,9 +299,19 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
 
     const start = Date.now();
     try {
-      if (this.redisClient.status !== "ready") {
+      const status = this.redisClient.status;
+      if (status === "connecting" || status === "connect" || status === "reconnecting") {
+        const becameReady = await this.waitForRedisReady();
+        if (!becameReady) {
+          return {
+            status: "degraded",
+            message: `Redis still ${this.redisClient.status}`,
+          };
+        }
+      } else if (status !== "ready") {
         await this.redisClient.connect();
       }
+
       await this.redisClient.ping();
       return {
         status: "healthy",
@@ -309,5 +323,85 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
         message: error instanceof Error ? error.message : "Unknown redis error",
       };
     }
+  }
+
+  private async waitForRedisReady(timeoutMs = 1500): Promise<boolean> {
+    if (!this.redisClient) {
+      return false;
+    }
+
+    if (this.redisClient.status === "ready") {
+      return true;
+    }
+
+    return new Promise((resolve) => {
+      const client = this.redisClient!;
+      let settled = false;
+
+      const cleanup = () => {
+        client.off("ready", onReady);
+        client.off("error", onError);
+      };
+
+      const finish = (result: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        cleanup();
+        resolve(result);
+      };
+
+      const onReady = () => finish(true);
+      const onError = () => finish(false);
+      const timeout = setTimeout(() => finish(client.status === "ready"), timeoutMs);
+
+      client.once("ready", onReady);
+      client.once("error", onError);
+    });
+  }
+
+  private async getMemoryLimitBytes(): Promise<number> {
+    if (this.memoryLimitBytes && this.memoryLimitBytes > 0) {
+      return this.memoryLimitBytes;
+    }
+
+    const configuredLimit = this.configService.get<string>("MEMORY_LIMIT_BYTES");
+    const parsedConfigured = Number(configuredLimit);
+    if (configuredLimit && Number.isFinite(parsedConfigured) && parsedConfigured > 0) {
+      this.memoryLimitBytes = parsedConfigured;
+      return this.memoryLimitBytes;
+    }
+
+    const cgroupPaths = ["/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"];
+    for (const path of cgroupPaths) {
+      try {
+        const raw = (await readFile(path, "utf8")).trim();
+        if (raw === "max") {
+          break;
+        }
+
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          continue;
+        }
+
+        // Ignore unrealistic values that indicate "no limit" in some cgroup setups.
+        if (parsed > Number.MAX_SAFE_INTEGER / 4 || parsed > os.totalmem() * 8) {
+          continue;
+        }
+
+        this.memoryLimitBytes = parsed;
+        return this.memoryLimitBytes;
+      } catch {
+        // Path may not exist outside Linux containers.
+      }
+    }
+
+    this.memoryLimitBytes = os.totalmem();
+    return this.memoryLimitBytes;
+  }
+
+  private toMiB(bytes: number): string {
+    return (bytes / 1024 / 1024).toFixed(1);
   }
 }
