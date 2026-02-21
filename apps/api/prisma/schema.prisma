@@ -1,0 +1,1081 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-arm64-openssl-1.1.x", "darwin-arm64"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Organization & Users
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       User[]
+  teams       Team[]
+  policies    Policy[]
+  policyExceptions PolicyException[]
+  incidents   Incident[]
+  violations  Violation[]
+  auditLogs   AuditLog[]
+  reportJobs  ReportJob[]
+  integrations Integration[]
+  tasks       Task[]
+  activities       Activity[]
+  complianceEvidence ComplianceEvidence[]
+  complianceChecks  ComplianceCheck[]
+  incidentCategories IncidentCategory[]
+  slaPolicies       SLAPolicy[]
+  ticketCounter     TicketCounter?
+  problems          Problem[]
+  changeRequests    ChangeRequest[]
+  workflows         Workflow[]
+  serviceCatalogItems ServiceCatalogItem[]
+  serviceRequests   ServiceRequest[]
+  serviceRequestTransitions ServiceRequestTransition[]
+  knowledgeArticles KnowledgeArticle[]
+  knowledgeArticleVersions KnowledgeArticleVersion[]
+  webhooks          Webhook[]
+  notificationPreferences NotificationPreference[]
+  configurationItems ConfigurationItem[]
+  privilegedAccessRequests PrivilegedAccessRequest[]
+  cabPolicy         CABPolicy?
+
+  @@index([slug])
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  avatarUrl      String?
+  organizationId String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id])
+  teams        TeamMembership[]
+  ledTeams     Team[]          @relation("TeamLead")
+  roles        UserRole[]
+
+  assignedIncidents  Incident[]      @relation("AssignedIncidents")
+  reportedIncidents  Incident[]      @relation("ReportedIncidents")
+  comments           IncidentComment[]
+  auditLogs          AuditLog[]      @relation("UserAuditLogs")
+  notifications      Notification[]
+  requestedReports   ReportJob[]
+  assignedTasks      Task[]          @relation("TaskAssignee")
+  reportedTasks      Task[]          @relation("TaskReporter")
+  assignedProblems   Problem[]       @relation("ProblemAssignee")
+  requestedChanges   ChangeRequest[] @relation("ChangeRequester")
+  assignedChanges    ChangeRequest[] @relation("ChangeAssignee")
+  reviewedChanges    ChangeRequest[] @relation("ChangePIRReviewer")
+  changeApprovals    ChangeApproval[]
+  serviceRequests    ServiceRequest[] @relation("ServiceRequestRequester")
+  assignedServiceRequests ServiceRequest[] @relation("ServiceRequestAssignee")
+  approvedServiceRequests ServiceRequest[] @relation("ServiceRequestApprovedBy")
+  deniedServiceRequests ServiceRequest[] @relation("ServiceRequestDeniedBy")
+  fulfilledServiceRequests ServiceRequest[] @relation("ServiceRequestFulfilledBy")
+  transitionedServiceRequests ServiceRequest[] @relation("ServiceRequestLastTransitionBy")
+  serviceRequestTransitions ServiceRequestTransition[] @relation("ServiceRequestTransitionActor")
+  knowledgeArticles  KnowledgeArticle[] @relation("KnowledgeArticleAuthor")
+  knowledgeArticleVersions KnowledgeArticleVersion[] @relation("KnowledgeArticleVersionEditor")
+  notificationPreferences NotificationPreference?
+  requestedPolicyExceptions PolicyException[] @relation("PolicyExceptionRequester")
+  approvedPolicyExceptions  PolicyException[] @relation("PolicyExceptionApprover")
+  privilegedAccessRequestsRequested PrivilegedAccessRequest[] @relation("PrivilegedAccessRequester")
+  privilegedAccessRequestsTargeted PrivilegedAccessRequest[] @relation("PrivilegedAccessTarget")
+  privilegedAccessRequestsReviewed PrivilegedAccessRequest[] @relation("PrivilegedAccessReviewer")
+  cabMemberships CABMember[] @relation("CABMemberUser")
+
+  @@index([email])
+  @@index([organizationId])
+}
+
+model Team {
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  organizationId String
+  leadId         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  lead         User?              @relation("TeamLead", fields: [leadId], references: [id], onDelete: SetNull)
+  members      TeamMembership[]
+  incidents    Incident[]
+  tasks        Task[]
+  problems     Problem[]
+  changeRequests ChangeRequest[]
+
+  @@index([organizationId])
+  @@index([leadId])
+}
+
+model TeamMembership {
+  userId String
+  teamId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([userId, teamId])
+}
+
+// RBAC
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([name])
+}
+
+model Permission {
+  id       String   @id @default(uuid())
+  name     String   @unique
+  resource String
+  action   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roles RolePermission[]
+
+  @@unique([resource, action])
+  @@index([name])
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  conditions   Json?
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+// Incident Categories (ITIL)
+model IncidentCategory {
+  id             String   @id @default(uuid())
+  name           String
+  parentId       String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  parent      IncidentCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    IncidentCategory[] @relation("CategoryHierarchy")
+  organization Organization @relation(fields: [organizationId], references: [id])
+  incidents   Incident[]
+
+  @@index([organizationId])
+  @@index([parentId])
+}
+
+// SLA Policies
+model SLAPolicy {
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  organizationId    String
+  priority          String   // critical, high, medium, low
+  responseTimeMins  Int      // Time to first response in minutes
+  resolutionTimeMins Int     // Time to resolution in minutes
+  businessHoursOnly Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  incidents    Incident[]
+
+  @@index([organizationId])
+  @@index([priority])
+}
+
+// Ticket Counter for auto-numbering
+model TicketCounter {
+  id              String   @id @default(uuid())
+  organizationId  String   @unique
+  incidentCount   Int      @default(0)
+  problemCount    Int      @default(0)
+  changeCount     Int      @default(0)
+  requestCount    Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+}
+
+// Incidents
+
+model Incident {
+  id             String   @id @default(uuid())
+  title          String
+  description    String   @db.Text
+  status         String   @default("new") // new, assigned, in_progress, pending, resolved, closed, cancelled
+  priority       String   @default("medium")
+  organizationId String
+  teamId         String?
+  assigneeId     String?
+  reporterId     String?
+  tags           String[]
+  dueAt          DateTime?
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // ITIL Fields
+  ticketNumber   String?  @unique // INC-001234
+  categoryId     String?
+  impact         String   @default("medium") // low, medium, high, critical
+  urgency        String   @default("medium") // low, medium, high, critical
+  
+  // SLA Fields
+  slaPolicyId    String?
+  slaResponseDue DateTime?
+  slaResolutionDue DateTime?
+  slaResponseAt  DateTime? // When first response was made
+  slaResponseMet Boolean?
+  slaResolutionMet Boolean?
+  slaPausedAt    DateTime?
+  slaTotalPausedMins Int   @default(0)
+  
+  // Helpdesk Fields
+  channel        String   @default("portal") // portal, email, phone, chat, api
+  onHoldReason   String?
+  onHoldUntil    DateTime?
+  
+  // Problem Linking
+  problemId      String?
+  
+  // Change Linking
+  changeRequestId String?
+  
+  organization Organization @relation(fields: [organizationId], references: [id])
+  team         Team?        @relation(fields: [teamId], references: [id])
+  assignee     User?        @relation("AssignedIncidents", fields: [assigneeId], references: [id])
+  reporter     User?        @relation("ReportedIncidents", fields: [reporterId], references: [id])
+  category     IncidentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  slaPolicy    SLAPolicy?  @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  problem      Problem?     @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  changeRequest ChangeRequest? @relation(fields: [changeRequestId], references: [id], onDelete: SetNull)
+
+  comments    IncidentComment[]
+  timeline    IncidentTimeline[]
+  workflows   Workflow[]
+  tasks       Task[]
+  configurationItems IncidentConfigurationItem[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([priority])
+  @@index([assigneeId])
+  @@index([teamId])
+  @@index([ticketNumber])
+  @@index([categoryId])
+}
+
+model ConfigurationItem {
+  id             String   @id @default(uuid())
+  name           String
+  type           String   @default("application") // application, service, database, infrastructure, endpoint, other
+  status         String   @default("active") // active, maintenance, retired
+  criticality    String   @default("medium") // low, medium, high, critical
+  environment    String?  // production, staging, development
+  ownerTeam      String?
+  description    String?  @db.Text
+  metadata       Json?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  incidents    IncidentConfigurationItem[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([criticality])
+}
+
+model IncidentConfigurationItem {
+  incidentId          String
+  configurationItemId String
+  linkedAt            DateTime @default(now())
+
+  incident          Incident          @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  configurationItem ConfigurationItem @relation(fields: [configurationItemId], references: [id], onDelete: Cascade)
+
+  @@id([incidentId, configurationItemId])
+  @@index([configurationItemId])
+}
+
+model IncidentComment {
+  id         String   @id @default(uuid())
+  incidentId String
+  authorId   String
+  content    String   @db.Text
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id])
+
+  @@index([incidentId])
+}
+
+model IncidentTimeline {
+  id            String   @id @default(uuid())
+  incidentId    String
+  action        String
+  actorId       String?
+  previousValue String?
+  newValue      String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+}
+
+// Workflows
+
+model Workflow {
+  id           String   @id @default(uuid())
+  name         String
+  type         String
+  status       String   @default("pending")
+  organizationId String?
+  entityId     String
+  entityType   String
+  currentStepId String?
+  steps        Json
+  context      Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  completedAt  DateTime?
+
+  incidentId String?
+  incident   Incident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([entityId])
+  @@index([type])
+  @@index([status])
+}
+
+// Policies & Compliance
+
+model Policy {
+  id                 String    @id @default(uuid())
+  name               String
+  description        String    @db.Text
+  category           String
+  status             String    @default("draft")
+  version            String    @default("1.0")
+  effectiveFrom      DateTime?
+  organizationId     String
+  ownerRoleId        String
+  reviewFrequencyDays Int      @default(90)
+  lastReviewedAt     DateTime?
+  nextReviewAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  violations   Violation[]
+  exceptions   PolicyException[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([category])
+  @@index([effectiveFrom])
+}
+
+model PolicyException {
+  id             String   @id @default(uuid())
+  policyId       String
+  organizationId String
+  title          String
+  justification  String   @db.Text
+  status         String   @default("requested") // requested, approved, rejected, expired
+  requestedById  String
+  approvedById   String?
+  requestedAt    DateTime @default(now())
+  approvedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  policy       Policy       @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("PolicyExceptionRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  approvedBy   User?        @relation("PolicyExceptionApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([policyId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([requestedById])
+}
+
+model Violation {
+  id             String    @id @default(uuid())
+  policyId       String
+  entityId       String
+  entityType     String
+  status         String    @default("open")
+  severity       String    @default("medium")
+  title          String
+  description    String    @db.Text
+  remediation    String?   @db.Text
+  assigneeId     String?
+  organizationId String
+  detectedAt     DateTime  @default(now())
+  acknowledgedAt DateTime?
+  remediatedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  policy       Policy @relation(fields: [policyId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([policyId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([severity])
+}
+
+// Audit
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  actorId        String?
+  actorType      String
+  action         String
+  resource       String
+  resourceId     String?
+  previousValue  Json?
+  newValue       Json?
+  metadata       Json     @default("{}")
+  ipAddress      String?
+  userAgent      String?
+  correlationId  String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  actor        User?        @relation("UserAuditLogs", fields: [actorId], references: [id])
+
+  @@index([organizationId])
+  @@index([actorId])
+  @@index([resource])
+  @@index([correlationId])
+  @@index([createdAt])
+}
+
+// Reports
+
+model ReportJob {
+  id             String   @id @default(uuid())
+  type           String
+  format         String   @default("csv")
+  status         String   @default("pending")
+  parameters     Json
+  organizationId String
+  requestedById  String
+  downloadUrl    String?
+  error          String?  @db.Text
+  startedAt      DateTime?
+  completedAt    DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  requestedBy  User         @relation(fields: [requestedById], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([requestedById])
+}
+
+// Notifications
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  actionUrl String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// Integrations
+
+model Integration {
+  id             String   @id @default(uuid())
+  organizationId String
+  type           String
+  name           String
+  config         Json
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+// Tasks
+
+model Task {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?   @db.Text
+  status         String    @default("pending") // pending, in_progress, completed, cancelled
+  priority       String    @default("medium")  // low, medium, high, critical
+  organizationId String
+  assigneeId     String?
+  reporterId     String?
+  incidentId     String?
+  workflowId     String?
+  violationId    String?
+  policyId       String?
+  problemId      String?
+  changeRequestId String?
+  teamId         String?
+  dueAt          DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  estimatedMinutes Int?
+  actualMinutes    Int?
+  tags           String[]
+  metadata       Json?
+  sourceEntityId   String?
+  sourceEntityType String? // incident, violation, policy, workflow, problem, change
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  assignee     User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reporter     User?        @relation("TaskReporter", fields: [reporterId], references: [id])
+  incident     Incident?    @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  problem      Problem?     @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  changeRequest ChangeRequest? @relation(fields: [changeRequestId], references: [id], onDelete: SetNull)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([priority])
+  @@index([assigneeId])
+  @@index([teamId])
+  @@index([incidentId])
+  @@index([violationId])
+  @@index([policyId])
+  @@index([workflowId])
+  @@index([problemId])
+  @@index([changeRequestId])
+  @@index([dueAt])
+  @@index([sourceEntityType, sourceEntityId])
+}
+
+// Unified Activity Tracking
+
+model Activity {
+  id             String   @id @default(uuid())
+  organizationId String
+  entityType     String   // incident, task, workflow, violation, policy
+  entityId       String
+  action         String   // created, updated, status_changed, assigned, completed, etc.
+  actorId        String?
+  title          String
+  description    String?  @db.Text
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Compliance Evidence
+
+model ComplianceEvidence {
+  id             String   @id @default(uuid())
+  organizationId String
+  policyId       String?
+  violationId    String?
+  taskId         String?
+  entityType     String   // document, screenshot, log, config, etc.
+  name           String
+  description    String?  @db.Text
+  fileUrl        String?
+  content        Json?
+  collectedAt    DateTime @default(now())
+  collectedBy    String?
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([policyId])
+  @@index([violationId])
+  @@index([taskId])
+}
+
+// Compliance Check Results
+
+model ComplianceCheck {
+  id             String   @id @default(uuid())
+  organizationId String
+  policyId       String?
+  entityType     String   // system, resource, process
+  entityId       String?
+  status         String   // compliant, non_compliant, warning, error
+  score          Int?     // 0-100
+  findings       Json     @default("[]")
+  checkedAt      DateTime @default(now())
+  nextCheckAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([policyId])
+  @@index([status])
+  @@index([entityType, entityId])
+}
+
+// Dashboard Metrics (cached)
+
+model DashboardMetric {
+  id             String   @id @default(uuid())
+  organizationId String
+  metricType     String   // incident_count, task_completion, compliance_score, etc.
+  period         String   // daily, weekly, monthly
+  value          Float
+  metadata       Json     @default("{}")
+  computedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, metricType, period, computedAt])
+  @@index([organizationId])
+  @@index([metricType])
+}
+
+// Problem Management (ITIL)
+
+model Problem {
+  id              String   @id @default(uuid())
+  ticketNumber    String?  @unique // PRB-001234
+  title           String
+  description     String   @db.Text
+  status          String   @default("new") // new, investigating, known_error, root_cause_identified, resolved, closed
+  
+  // Root Cause Analysis
+  rootCause       String?  @db.Text
+  workaround      String?  @db.Text
+  impactAssessment String? @db.Text
+  
+  // Priority
+  impact          String   @default("medium") // low, medium, high, critical
+  urgency         String   @default("medium")
+  priority        String?
+  
+  // Dates
+  detectedAt      DateTime  @default(now())
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  
+  // Relationships
+  organizationId  String
+  assigneeId      String?
+  teamId          String?
+  
+  // Known Error Database
+  isKnownError    Boolean  @default(false)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  assignee     User?        @relation("ProblemAssignee", fields: [assigneeId], references: [id])
+  team         Team?        @relation(fields: [teamId], references: [id])
+  incidents    Incident[]
+  tasks        Task[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([ticketNumber])
+  @@index([assigneeId])
+}
+
+// Change Management (ITIL)
+
+model ChangeRequest {
+  id              String   @id @default(uuid())
+  ticketNumber    String?  @unique // CHG-001234
+  title           String
+  description     String   @db.Text
+  reason          String   @db.Text
+  
+  // Change Type
+  type            String   @default("normal") // standard, normal, emergency
+  
+  // Risk Assessment
+  riskLevel       String   @default("medium") // low, medium, high, critical
+  impactLevel     String   @default("medium")
+  rollbackPlan    String?  @db.Text
+  testPlan        String?  @db.Text
+  
+  // Status
+  status          String   @default("draft") // draft, requested, assessing, scheduled, approved, rejected, implementing, completed, failed
+
+  // Post Implementation Review (PIR)
+  pirStatus       String   @default("not_started") // not_started, completed
+  pirSummary      String?  @db.Text
+  pirOutcome      String?  // successful, partial, failed
+  pirCompletedAt  DateTime?
+  pirReviewedById String?
+  
+  // Schedule
+  plannedStart    DateTime?
+  plannedEnd      DateTime?
+  actualStart     DateTime?
+  actualEnd       DateTime?
+  
+  // Relationships
+  organizationId  String
+  requesterId     String
+  assigneeId      String?
+  teamId          String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  requester    User         @relation("ChangeRequester", fields: [requesterId], references: [id])
+  assignee     User?        @relation("ChangeAssignee", fields: [assigneeId], references: [id])
+  pirReviewedBy User?       @relation("ChangePIRReviewer", fields: [pirReviewedById], references: [id])
+  team         Team?        @relation(fields: [teamId], references: [id])
+  incidents    Incident[]
+  tasks        Task[]
+  approvals    ChangeApproval[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([ticketNumber])
+  @@index([type])
+  @@index([pirStatus])
+}
+
+model ChangeApproval {
+  id              String   @id @default(uuid())
+  changeRequestId String
+  approverId      String
+  status          String   @default("pending") // pending, approved, rejected
+  comments        String?  @db.Text
+  approvedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  changeRequest ChangeRequest @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+  approver      User          @relation(fields: [approverId], references: [id])
+
+  @@unique([changeRequestId, approverId])
+  @@index([changeRequestId])
+}
+
+// Service Catalog
+
+model ServiceCatalogItem {
+  id              String   @id @default(uuid())
+  name            String
+  description     String   @db.Text
+  category        String   // hardware, software, access, general
+  status          String   @default("active") // active, retired
+  formSchema      Json?    // Dynamic form fields
+  approvalRequired Boolean @default(false)
+  approvalWorkflow String?
+  slaPolicyId     String?
+  organizationId  String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  serviceRequests ServiceRequest[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([status])
+}
+
+model ServiceRequest {
+  id              String   @id @default(uuid())
+  ticketNumber    String   @unique
+  title           String
+  description     String   @db.Text
+  status          String   @default("requested") // requested, approved, denied, fulfilled, closed
+  formData        Json?    // Submitted form data
+  
+  // Relationships
+  serviceItemId   String
+  organizationId  String
+  requesterId     String
+  assigneeId      String?
+  approvedById    String?
+  deniedById      String?
+  fulfilledById   String?
+  lastTransitionById String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  approvedAt      DateTime?
+  deniedAt        DateTime?
+  denialReason    String?  @db.Text
+  fulfilledAt     DateTime?
+  fulfillmentNotes String? @db.Text
+  closedAt        DateTime?
+  lastTransitionAt DateTime?
+
+  serviceItem     ServiceCatalogItem @relation(fields: [serviceItemId], references: [id])
+  organization    Organization       @relation(fields: [organizationId], references: [id])
+  requester       User               @relation("ServiceRequestRequester", fields: [requesterId], references: [id])
+  assignee        User?              @relation("ServiceRequestAssignee", fields: [assigneeId], references: [id])
+  approvedBy      User?              @relation("ServiceRequestApprovedBy", fields: [approvedById], references: [id])
+  deniedBy        User?              @relation("ServiceRequestDeniedBy", fields: [deniedById], references: [id])
+  fulfilledBy     User?              @relation("ServiceRequestFulfilledBy", fields: [fulfilledById], references: [id])
+  lastTransitionBy User?             @relation("ServiceRequestLastTransitionBy", fields: [lastTransitionById], references: [id])
+  transitions     ServiceRequestTransition[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([ticketNumber])
+  @@index([approvedById])
+  @@index([deniedById])
+  @@index([fulfilledById])
+  @@index([lastTransitionById])
+}
+
+model ServiceRequestTransition {
+  id              String   @id @default(uuid())
+  serviceRequestId String
+  organizationId  String
+  actorId         String?
+  action          String   // submitted, auto_approved, approved, rejected, fulfilled, closed
+  fromStatus      String?
+  toStatus        String
+  reason          String?  @db.Text
+  notes           String?  @db.Text
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  serviceRequest  ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  actor           User?          @relation("ServiceRequestTransitionActor", fields: [actorId], references: [id])
+
+  @@index([serviceRequestId])
+  @@index([organizationId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Knowledge Base
+
+model KnowledgeArticle {
+  id              String   @id @default(uuid())
+  title           String
+  content         String   @db.Text
+  category        String
+  status          String   @default("draft") // draft, published, archived
+  version         String   @default("1.0")
+  tags            String[]
+  views           Int      @default(0)
+  helpful         Int      @default(0)
+  notHelpful      Int      @default(0)
+  
+  // Relationships
+  organizationId  String
+  authorId        String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  author       User         @relation("KnowledgeArticleAuthor", fields: [authorId], references: [id])
+  versions     KnowledgeArticleVersion[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([status])
+}
+
+model KnowledgeArticleVersion {
+  id             String   @id @default(uuid())
+  articleId      String
+  organizationId String
+  version        String
+  title          String
+  content        String   @db.Text
+  category       String
+  tags           String[]
+  editedById     String?
+  changeSummary  String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  article      KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  editedBy     User?            @relation("KnowledgeArticleVersionEditor", fields: [editedById], references: [id], onDelete: SetNull)
+
+  @@unique([articleId, version])
+  @@index([articleId])
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model PrivilegedAccessRequest {
+  id               String   @id @default(uuid())
+  organizationId   String
+  targetUserId     String
+  requestedById    String
+  requestedRoleIds String[]
+  currentRoleIds   String[]
+  justification    String   @db.Text
+  status           String   @default("pending") // pending, approved, rejected
+  reviewComment    String?  @db.Text
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  targetUser   User         @relation("PrivilegedAccessTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  requestedBy  User         @relation("PrivilegedAccessRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  reviewedBy   User?        @relation("PrivilegedAccessReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([targetUserId])
+}
+
+model CABPolicy {
+  id                         String   @id @default(uuid())
+  organizationId             String   @unique
+  minimumApprovers           Int      @default(2)
+  quorumPercent              Int      @default(60)
+  emergencyChangeRequiresCab Boolean  @default(true)
+  meetingCadence             String   @default("weekly")
+  maintenanceWindow          String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      CABMember[]
+}
+
+model CABMember {
+  id          String   @id @default(uuid())
+  cabPolicyId String
+  userId      String
+  role        String   @default("member") // chair, member, advisor
+  createdAt   DateTime @default(now())
+
+  cabPolicy CABPolicy @relation(fields: [cabPolicyId], references: [id], onDelete: Cascade)
+  user      User      @relation("CABMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cabPolicyId, userId])
+  @@index([cabPolicyId])
+  @@index([userId])
+}
+
+// Notification & Integration Settings
+
+model Webhook {
+  id              String   @id @default(uuid())
+  name            String
+  url             String
+  secret          String?
+  events          String[] // e.g., ["incident.created", "incident.resolved"]
+  isActive        Boolean  @default(true)
+  lastTriggeredAt DateTime?
+  
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+model NotificationPreference {
+  id              String   @id @default(uuid())
+  // Email preferences
+  emailIncidentAssigned     Boolean @default(true)
+  emailIncidentResolved     Boolean @default(true)
+  emailSlaBreached          Boolean @default(true)
+  emailChangeApproved       Boolean @default(true)
+  emailDailyDigest          Boolean @default(false)
+  
+  // In-app preferences
+  inAppAll                  Boolean @default(true)
+  
+  userId        String   @unique
+  organizationId String
+  
+  user          User         @relation(fields: [userId], references: [id])
+  organization  Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([userId])
+}

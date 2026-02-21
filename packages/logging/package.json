@@ -1,0 +1,39 @@
+{
+  "name": "@nexusops/logging",
+  "version": "1.0.0",
+  "description": "Centralized structured logging for NexusOps services",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
+    "pino-std-serializers": "^7.1.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/uuid": "^10.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

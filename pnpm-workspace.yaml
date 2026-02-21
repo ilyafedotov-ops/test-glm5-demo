@@ -1,0 +1,5 @@
+packages:
+  - apps/*
+  - packages/*
+
+packageExtensions: '{"@prisma/client": {"optionalDependencies": {"@prisma/engines": "*"}}}'

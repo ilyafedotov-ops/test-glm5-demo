@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Backgrounds - Off-white for reduced eye strain */
+    --background: 60 9% 98%;
+    --foreground: 240 10% 10%;
+
+    /* Cards & Surfaces - Glass effect base */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+
+    /* Primary - Violet/Indigo modern tech feel */
+    --primary: 245 58% 57%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 245 58% 67%;
+
+    /* Secondary */
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 20%;
+
+    /* Muted */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+
+    /* Accent - Pink for highlights */
+    --accent: 330 81% 70%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Semantic Colors */
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 245 58% 57%;
+
+    /* Glass Effect Variables */
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 0 0% 100% / 0.2;
+    --glass-shadow: 0 8% 0% / 0.08;
+
+    /* Radius */
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Backgrounds - Deep slate for true dark mode */
+    --background: 222 47% 11%;
+    --foreground: 210 20% 98%;
+
+    /* Cards & Surfaces - Elevated glass */
+    --card: 222 47% 15%;
+    --card-foreground: 210 20% 98%;
+    --popover: 222 47% 15%;
+    --popover-foreground: 210 20% 98%;
+
+    /* Primary - Soft violet for dark mode */
+    --primary: 245 58% 70%;
+    --primary-foreground: 222 47% 11%;
+    --primary-glow: 245 58% 75%;
+
+    /* Secondary */
+    --secondary: 222 47% 18%;
+    --secondary-foreground: 210 20% 98%;
+
+    /* Muted */
+    --muted: 222 47% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Accent */
+    --accent: 330 81% 75%;
+    --accent-foreground: 222 47% 11%;
+
+    /* Semantic Colors */
+    --destructive: 350 89% 65%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 84% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 222 47% 20%;
+    --input: 222 47% 20%;
+    --ring: 245 58% 70%;
+
+    /* Glass Effect Variables - Dark mode */
+    --glass-bg: 222 47% 15% / 0.6;
+    --glass-border: 0 0% 100% / 0.1;
+    --glass-shadow: 0 0% 0% / 0.25;
+
+    /* Radius */
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Glass Card Effect */
+  .glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 0 8px 32px hsl(var(--glass-shadow));
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500;
+  }
+
+  .dark .gradient-text {
+    @apply bg-gradient-to-r from-violet-400 via-purple-400 to-pink-400;
+  }
+
+  /* Glow effect */
+  .glow {
+    box-shadow: 0 0 20px hsl(var(--primary-glow) / 0.3),
+                0 0 40px hsl(var(--primary-glow) / 0.1);
+  }
+
+  .dark .glow {
+    box-shadow: 0 0 20px hsl(var(--primary-glow) / 0.4),
+                0 0 40px hsl(var(--primary-glow) / 0.2);
+  }
+}
