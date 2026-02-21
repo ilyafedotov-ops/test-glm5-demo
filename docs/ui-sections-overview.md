@@ -70,7 +70,7 @@ Key features:
 
 ## Reports
 
-![Reports](./screenshots/reports.png)
+![Reports](./screenshots/reports-v2.png)
 
 Analytics and reporting section for performance and compliance-oriented output.
 
@@ -81,7 +81,7 @@ Key features:
 
 ## Knowledge Base
 
-![Knowledge Base](./screenshots/knowledge.png)
+![Knowledge Base](./screenshots/knowledge-v2.png)
 
 Knowledge management area for article discovery and operational knowledge reuse.
 

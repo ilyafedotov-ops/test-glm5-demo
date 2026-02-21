@@ -180,13 +180,13 @@ Workflow orchestration view for templates, progression, and control actions.
 
 Analytics/reporting section for operational visibility and export workflows.
 
-![Reports](docs/screenshots/reports.png)
+![Reports](docs/screenshots/reports-v2.png)
 
 ### Knowledge Base
 
 Search and reuse operational knowledge, runbooks, and structured articles.
 
-![Knowledge Base](docs/screenshots/knowledge.png)
+![Knowledge Base](docs/screenshots/knowledge-v2.png)
 
 ## Architecture Overview
 
