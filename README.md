@@ -136,6 +136,58 @@ Key outcomes the platform targets:
 - IT Leadership and Governance boards:
   - Monitor SLAs, operational health, and control effectiveness.
 
+## UI Tour (Screenshots)
+
+Full visual guide: `docs/ui-sections-overview.md`
+
+### Dashboard
+
+Main operations overview with KPIs, risk context, and quick actions.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Incidents
+
+Incident intake and triage workspace with lifecycle and prioritization controls.
+
+![Incidents](docs/screenshots/incidents.png)
+
+### Problems
+
+Root-cause management area with problem records and linked operational context.
+
+![Problems](docs/screenshots/problems.png)
+
+### Changes
+
+Change request tracking and governance-oriented execution flow.
+
+![Changes](docs/screenshots/changes.png)
+
+### Tasks
+
+Task assignment and execution board for day-to-day work management.
+
+![Tasks](docs/screenshots/tasks.png)
+
+### Workflows
+
+Workflow orchestration view for templates, progression, and control actions.
+
+![Workflows](docs/screenshots/workflows.png)
+
+### Reports
+
+Analytics/reporting section for operational visibility and export workflows.
+
+![Reports](docs/screenshots/reports.png)
+
+### Knowledge Base
+
+Search and reuse operational knowledge, runbooks, and structured articles.
+
+![Knowledge Base](docs/screenshots/knowledge.png)
+
 ## Architecture Overview
 
 ```mermaid
