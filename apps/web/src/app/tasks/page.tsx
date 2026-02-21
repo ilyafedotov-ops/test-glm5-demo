@@ -1,14 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
 import {
-  CheckSquare, Plus, Search, Calendar, RefreshCw,
-  CheckCircle2, Circle, Play, XCircle, AlertTriangle, LayoutGrid, List,
-  Timer, Flame, Tag, ExternalLink, Filter, UserPlus, Pencil, Trash2
+  CheckSquare,
+  Plus,
+  Search,
+  Calendar,
+  RefreshCw,
+  CheckCircle2,
+  Circle,
+  Play,
+  XCircle,
+  AlertTriangle,
+  LayoutGrid,
+  List,
+  Timer,
+  Flame,
+  Tag,
+  ExternalLink,
+  Filter,
+  UserPlus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -21,6 +38,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { RecordPicker, type RecordPickerOption } from "@/components/ui/record-picker";
 import { SystemRecordBadge } from "@/components/operations/system-record-badge";
 import { RelatedRecordList } from "@/components/operations/related-record-list";
 
@@ -78,6 +96,8 @@ interface TaskStats {
   high: number;
   avgCompletionTime: number;
 }
+
+type TaskRecordType = "incident" | "workflow" | "violation" | "problem" | "change" | "policy";
 
 async function fetchTasks(
   token: string,
@@ -164,6 +184,25 @@ async function fetchTaskOptions(token: string): Promise<{
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error("Failed to fetch task options");
+  return res.json();
+}
+
+async function fetchTaskRecordOptions(
+  token: string,
+  type: TaskRecordType,
+  query: string
+): Promise<RecordPickerOption[]> {
+  const params = new URLSearchParams({ type });
+  if (query.trim()) {
+    params.set("q", query.trim());
+  }
+  params.set("limit", "20");
+
+  const res = await fetch(`${API_URL}/tasks/options/records?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) throw new Error("Unauthorized");
+  if (!res.ok) throw new Error("Failed to search linked records");
   return res.json();
 }
 
@@ -283,16 +322,45 @@ async function deleteTask(token: string, id: string) {
 }
 
 const priorityConfig = {
-  critical: { icon: Flame, gradient: "from-rose-600 to-pink-600", bg: "bg-rose-500/10", color: "text-rose-600", label: "Critical" },
-  high: { icon: AlertTriangle, gradient: "from-orange-500 to-amber-500", bg: "bg-orange-500/10", color: "text-orange-600", label: "High" },
-  medium: { icon: Circle, gradient: "from-amber-500 to-yellow-500", bg: "bg-amber-500/10", color: "text-amber-600", label: "Medium" },
-  low: { icon: CheckCircle2, gradient: "from-emerald-500 to-teal-500", bg: "bg-emerald-500/10", color: "text-emerald-600", label: "Low" },
+  critical: {
+    icon: Flame,
+    gradient: "from-rose-600 to-pink-600",
+    bg: "bg-rose-500/10",
+    color: "text-rose-600",
+    label: "Critical",
+  },
+  high: {
+    icon: AlertTriangle,
+    gradient: "from-orange-500 to-amber-500",
+    bg: "bg-orange-500/10",
+    color: "text-orange-600",
+    label: "High",
+  },
+  medium: {
+    icon: Circle,
+    gradient: "from-amber-500 to-yellow-500",
+    bg: "bg-amber-500/10",
+    color: "text-amber-600",
+    label: "Medium",
+  },
+  low: {
+    icon: CheckCircle2,
+    gradient: "from-emerald-500 to-teal-500",
+    bg: "bg-emerald-500/10",
+    color: "text-emerald-600",
+    label: "Low",
+  },
 } as const;
 
 const statusConfig = {
   pending: { icon: Circle, bg: "bg-slate-500/10", color: "text-slate-600", label: "Pending" },
   in_progress: { icon: Play, bg: "bg-blue-500/10", color: "text-blue-600", label: "In Progress" },
-  completed: { icon: CheckCircle2, bg: "bg-emerald-500/10", color: "text-emerald-600", label: "Completed" },
+  completed: {
+    icon: CheckCircle2,
+    bg: "bg-emerald-500/10",
+    color: "text-emerald-600",
+    label: "Completed",
+  },
   cancelled: { icon: XCircle, bg: "bg-gray-500/10", color: "text-gray-500", label: "Cancelled" },
 } as const;
 
@@ -302,6 +370,24 @@ const slaConfig = {
   breached: { color: "text-rose-500", bg: "bg-rose-500/10", label: "Breached" },
   completed: { color: "text-blue-500", bg: "bg-blue-500/10", label: "Completed" },
 };
+
+function buildInitialTaskForm(scopedIncidentId: string, scopedWorkflowId: string) {
+  return {
+    title: "",
+    description: "",
+    priority: "medium",
+    dueAt: "",
+    assigneeId: "",
+    incidentId: scopedIncidentId,
+    workflowId: scopedWorkflowId,
+    teamId: "",
+    violationId: "",
+    sourceEntityType: "",
+    sourceEntityId: "",
+    estimatedMinutes: "",
+    tagsInput: "",
+  };
+}
 
 export default function TasksPage() {
   const router = useRouter();
@@ -333,21 +419,20 @@ export default function TasksPage() {
   const [dueFromFilter, setDueFromFilter] = useState("");
   const [dueToFilter, setDueToFilter] = useState("");
   const [slaStatusFilter, setSlaStatusFilter] = useState("");
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    priority: "medium",
-    dueAt: "",
-    assigneeId: "",
-    incidentId: scopedIncidentId,
-    workflowId: scopedWorkflowId,
-    teamId: "",
-    violationId: "",
-    sourceEntityType: "",
-    sourceEntityId: "",
-    estimatedMinutes: "",
-    tagsInput: "",
-  });
+  const [formData, setFormData] = useState(() =>
+    buildInitialTaskForm(scopedIncidentId, scopedWorkflowId)
+  );
+  const [taskAdvancedOpen, setTaskAdvancedOpen] = useState(false);
+  const [selectedIncidentOption, setSelectedIncidentOption] = useState<RecordPickerOption | null>(
+    null
+  );
+  const [selectedWorkflowOption, setSelectedWorkflowOption] = useState<RecordPickerOption | null>(
+    null
+  );
+  const [selectedViolationOption, setSelectedViolationOption] = useState<RecordPickerOption | null>(
+    null
+  );
+  const [selectedSourceOption, setSelectedSourceOption] = useState<RecordPickerOption | null>(null);
   const [completionMinutes, setCompletionMinutes] = useState("");
   const [startNote, setStartNote] = useState("");
   const [completionNote, setCompletionNote] = useState("");
@@ -361,6 +446,27 @@ export default function TasksPage() {
   });
   const [cancelReason, setCancelReason] = useState("");
   const [error, setError] = useState("");
+  const sourceType = formData.sourceEntityType as TaskRecordType | "";
+
+  const loadIncidentOptions = useCallback(
+    async (query: string) => (token ? fetchTaskRecordOptions(token, "incident", query) : []),
+    [token]
+  );
+  const loadWorkflowOptions = useCallback(
+    async (query: string) => (token ? fetchTaskRecordOptions(token, "workflow", query) : []),
+    [token]
+  );
+  const loadViolationOptions = useCallback(
+    async (query: string) => (token ? fetchTaskRecordOptions(token, "violation", query) : []),
+    [token]
+  );
+  const loadSourceOptions = useCallback(
+    async (query: string) => {
+      if (!token || !sourceType) return [];
+      return fetchTaskRecordOptions(token, sourceType, query);
+    },
+    [sourceType, token]
+  );
 
   useEffect(() => {
     setFormData((current) => ({
@@ -368,7 +474,77 @@ export default function TasksPage() {
       incidentId: scopedIncidentId,
       workflowId: scopedWorkflowId,
     }));
+    if (!scopedIncidentId) setSelectedIncidentOption(null);
+    if (!scopedWorkflowId) setSelectedWorkflowOption(null);
   }, [scopedIncidentId, scopedWorkflowId]);
+
+  useEffect(() => {
+    if (!token || !formData.incidentId) {
+      if (!formData.incidentId) setSelectedIncidentOption(null);
+      return;
+    }
+
+    fetchTaskRecordOptions(token, "incident", formData.incidentId)
+      .then((options) => {
+        const match = options.find((option) => option.id === formData.incidentId);
+        setSelectedIncidentOption(match || { id: formData.incidentId, label: formData.incidentId });
+      })
+      .catch(() => {
+        setSelectedIncidentOption({ id: formData.incidentId, label: formData.incidentId });
+      });
+  }, [formData.incidentId, token]);
+
+  useEffect(() => {
+    if (!token || !formData.workflowId) {
+      if (!formData.workflowId) setSelectedWorkflowOption(null);
+      return;
+    }
+
+    fetchTaskRecordOptions(token, "workflow", formData.workflowId)
+      .then((options) => {
+        const match = options.find((option) => option.id === formData.workflowId);
+        setSelectedWorkflowOption(match || { id: formData.workflowId, label: formData.workflowId });
+      })
+      .catch(() => {
+        setSelectedWorkflowOption({ id: formData.workflowId, label: formData.workflowId });
+      });
+  }, [formData.workflowId, token]);
+
+  useEffect(() => {
+    if (!token || !formData.violationId) {
+      if (!formData.violationId) setSelectedViolationOption(null);
+      return;
+    }
+
+    fetchTaskRecordOptions(token, "violation", formData.violationId)
+      .then((options) => {
+        const match = options.find((option) => option.id === formData.violationId);
+        setSelectedViolationOption(
+          match || { id: formData.violationId, label: formData.violationId }
+        );
+      })
+      .catch(() => {
+        setSelectedViolationOption({ id: formData.violationId, label: formData.violationId });
+      });
+  }, [formData.violationId, token]);
+
+  useEffect(() => {
+    if (!token || !sourceType || !formData.sourceEntityId) {
+      if (!formData.sourceEntityId) setSelectedSourceOption(null);
+      return;
+    }
+
+    fetchTaskRecordOptions(token, sourceType, formData.sourceEntityId)
+      .then((options) => {
+        const match = options.find((option) => option.id === formData.sourceEntityId);
+        setSelectedSourceOption(
+          match || { id: formData.sourceEntityId, label: formData.sourceEntityId }
+        );
+      })
+      .catch(() => {
+        setSelectedSourceOption({ id: formData.sourceEntityId, label: formData.sourceEntityId });
+      });
+  }, [formData.sourceEntityId, sourceType, token]);
 
   useEffect(() => {
     if (searchParams.get("create") === "1") {
@@ -436,44 +612,36 @@ export default function TasksPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => createTask(token!, {
-      title: formData.title,
-      description: formData.description,
-      priority: formData.priority,
-      dueAt: formData.dueAt || undefined,
-      assigneeId: formData.assigneeId || undefined,
-      incidentId: formData.incidentId || undefined,
-      workflowId: formData.workflowId || undefined,
-      teamId: formData.teamId || undefined,
-      violationId: formData.violationId || undefined,
-      sourceEntityType: formData.sourceEntityType || undefined,
-      sourceEntityId: formData.sourceEntityId || undefined,
-      estimatedMinutes: formData.estimatedMinutes
-        ? parseInt(formData.estimatedMinutes, 10)
-        : undefined,
-      tags: formData.tagsInput
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    }),
+    mutationFn: () =>
+      createTask(token!, {
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        dueAt: formData.dueAt || undefined,
+        assigneeId: formData.assigneeId || undefined,
+        incidentId: formData.incidentId || undefined,
+        workflowId: formData.workflowId || undefined,
+        teamId: formData.teamId || undefined,
+        violationId: formData.violationId || undefined,
+        sourceEntityType: formData.sourceEntityType || undefined,
+        sourceEntityId: formData.sourceEntityId || undefined,
+        estimatedMinutes: formData.estimatedMinutes
+          ? parseInt(formData.estimatedMinutes, 10)
+          : undefined,
+        tags: formData.tagsInput
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setDialogOpen(false);
-      setFormData({
-        title: "",
-        description: "",
-        priority: "medium",
-        dueAt: "",
-        assigneeId: "",
-        incidentId: scopedIncidentId,
-        workflowId: scopedWorkflowId,
-        teamId: "",
-        violationId: "",
-        sourceEntityType: "",
-        sourceEntityId: "",
-        estimatedMinutes: "",
-        tagsInput: "",
-      });
+      setFormData(buildInitialTaskForm(scopedIncidentId, scopedWorkflowId));
+      setTaskAdvancedOpen(false);
+      setSelectedIncidentOption(null);
+      setSelectedWorkflowOption(null);
+      setSelectedViolationOption(null);
+      setSelectedSourceOption(null);
       setError("");
       addToast({ type: "success", title: "Task created" });
     },
@@ -569,9 +737,7 @@ export default function TasksPage() {
       title: selectedTask.title || "",
       description: selectedTask.description || "",
       priority: selectedTask.priority || "medium",
-      dueAt: selectedTask.dueAt
-        ? new Date(selectedTask.dueAt).toISOString().slice(0, 16)
-        : "",
+      dueAt: selectedTask.dueAt ? new Date(selectedTask.dueAt).toISOString().slice(0, 16) : "",
     });
   }, [selectedTask]);
 
@@ -609,10 +775,10 @@ export default function TasksPage() {
       };
 
   const tasksByStatus = {
-    pending: filteredTasks.filter(t => t.status === "pending"),
-    in_progress: filteredTasks.filter(t => t.status === "in_progress"),
-    completed: filteredTasks.filter(t => t.status === "completed"),
-    cancelled: filteredTasks.filter(t => t.status === "cancelled"),
+    pending: filteredTasks.filter((t) => t.status === "pending"),
+    in_progress: filteredTasks.filter((t) => t.status === "in_progress"),
+    completed: filteredTasks.filter((t) => t.status === "completed"),
+    cancelled: filteredTasks.filter((t) => t.status === "cancelled"),
   };
   const activeFilterCount = [
     statusFilter,
@@ -650,7 +816,23 @@ export default function TasksPage() {
       setError("Title is required");
       return;
     }
+    if (formData.sourceEntityType && !formData.sourceEntityId.trim()) {
+      setError("Source record is required when source entity type is set");
+      return;
+    }
+    setError("");
     createMutation.mutate();
+  };
+
+  const closeCreateDialog = () => {
+    setDialogOpen(false);
+    setTaskAdvancedOpen(false);
+    setError("");
+    setFormData(buildInitialTaskForm(scopedIncidentId, scopedWorkflowId));
+    setSelectedIncidentOption(null);
+    setSelectedWorkflowOption(null);
+    setSelectedViolationOption(null);
+    setSelectedSourceOption(null);
   };
 
   const renderTaskCard = (task: Task) => {
@@ -665,7 +847,9 @@ export default function TasksPage() {
       >
         <div className="flex items-start justify-between mb-2">
           <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
-          <span className={`px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r ${priorityStyle.gradient} text-white flex-shrink-0 ml-2`}>
+          <span
+            className={`px-2 py-0.5 rounded text-xs font-medium bg-gradient-to-r ${priorityStyle.gradient} text-white flex-shrink-0 ml-2`}
+          >
             {priorityStyle.label}
           </span>
         </div>
@@ -676,16 +860,22 @@ export default function TasksPage() {
 
         <div className="flex flex-wrap gap-1 mb-3">
           {task.incidentId && (
-            <Badge variant="outline" className="text-xs border-amber-500/40 text-amber-700 dark:text-amber-300">
+            <Badge
+              variant="outline"
+              className="text-xs border-amber-500/40 text-amber-700 dark:text-amber-300"
+            >
               Incident
             </Badge>
           )}
           {task.workflowId && (
-            <Badge variant="outline" className="text-xs border-indigo-500/40 text-indigo-700 dark:text-indigo-300">
+            <Badge
+              variant="outline"
+              className="text-xs border-indigo-500/40 text-indigo-700 dark:text-indigo-300"
+            >
               Workflow
             </Badge>
           )}
-          {task.tags?.map(tag => (
+          {task.tags?.map((tag) => (
             <Badge key={tag} variant="outline" className="text-xs">
               <Tag className="h-3 w-3 mr-1" />
               {tag}
@@ -698,7 +888,10 @@ export default function TasksPage() {
             <div className="flex items-center gap-1.5">
               <Avatar className="h-5 w-5">
                 <AvatarFallback className="text-[10px] bg-gradient-to-br from-violet-500 to-purple-500 text-white">
-                  {task.assigneeName.split(' ').map(n => n[0]).join('')}
+                  {task.assigneeName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
               <span className="text-muted-foreground">{task.assigneeName}</span>
@@ -707,7 +900,7 @@ export default function TasksPage() {
             <span className="text-muted-foreground">Unassigned</span>
           )}
 
-          {task.timeRemaining !== undefined && task.slaStatus !== 'completed' && (
+          {task.timeRemaining !== undefined && task.slaStatus !== "completed" && (
             <span className={`flex items-center gap-1 ${slaStyle?.color}`}>
               <Timer className="h-3 w-3" />
               {formatTimeRemaining(task.timeRemaining)}
@@ -732,18 +925,16 @@ export default function TasksPage() {
   };
 
   return (
-      <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between animate-fade-in">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage and track tasks with SLA monitoring
-          </p>
+          <p className="text-muted-foreground mt-2">Manage and track tasks with SLA monitoring</p>
         </div>
         <div className="flex gap-3">
           <Button variant="glass" onClick={() => refetch()} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button variant="gradient" onClick={() => setDialogOpen(true)}>
@@ -760,19 +951,35 @@ export default function TasksPage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium">Scoped task view</p>
                 <p className="text-xs text-muted-foreground">
-                  {scopedIncidentId ? <>Incident <code>{scopedIncidentId}</code></> : null}
+                  {scopedIncidentId ? (
+                    <>
+                      Incident <code>{scopedIncidentId}</code>
+                    </>
+                  ) : null}
                   {scopedIncidentId && scopedWorkflowId ? " · " : null}
-                  {scopedWorkflowId ? <>Workflow <code>{scopedWorkflowId}</code></> : null}
+                  {scopedWorkflowId ? (
+                    <>
+                      Workflow <code>{scopedWorkflowId}</code>
+                    </>
+                  ) : null}
                 </p>
               </div>
               <div className="flex gap-2">
                 {scopedIncidentId && (
-                  <Button size="sm" variant="outline" onClick={() => router.push(`/incidents/${scopedIncidentId}`)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/incidents/${scopedIncidentId}`)}
+                  >
                     View Incident
                   </Button>
                 )}
                 {scopedWorkflowId && (
-                  <Button size="sm" variant="outline" onClick={() => router.push(`/workflows/${scopedWorkflowId}`)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/workflows/${scopedWorkflowId}`)}
+                  >
                     View Workflow
                   </Button>
                 )}
@@ -801,7 +1008,7 @@ export default function TasksPage() {
           </CardContent>
         </Card>
 
-        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: "100ms" }}>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -815,7 +1022,7 @@ export default function TasksPage() {
           </CardContent>
         </Card>
 
-        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: "200ms" }}>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -829,12 +1036,14 @@ export default function TasksPage() {
           </CardContent>
         </Card>
 
-        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: '300ms' }}>
+        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: "300ms" }}>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-3xl font-bold mt-1 text-emerald-500">{dashboardStats.completed}</p>
+                <p className="text-3xl font-bold mt-1 text-emerald-500">
+                  {dashboardStats.completed}
+                </p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
                 <CheckCircle2 className="h-6 w-6 text-white" />
@@ -845,7 +1054,7 @@ export default function TasksPage() {
       </div>
 
       {/* Search and View Toggle */}
-      <div className="flex gap-4 animate-slide-up" style={{ animationDelay: '400ms' }}>
+      <div className="flex gap-4 animate-slide-up" style={{ animationDelay: "400ms" }}>
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
@@ -860,7 +1069,9 @@ export default function TasksPage() {
           <Filter className="h-4 w-4" />
           Filters
           {activeFilterCount > 0 && (
-            <Badge variant="secondary" className="ml-1">{activeFilterCount}</Badge>
+            <Badge variant="secondary" className="ml-1">
+              {activeFilterCount}
+            </Badge>
           )}
         </Button>
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
@@ -883,7 +1094,10 @@ export default function TasksPage() {
 
       {/* Kanban View */}
       {viewMode === "kanban" && (
-        <div className="grid gap-6 md:grid-cols-4 animate-slide-up" style={{ animationDelay: '500ms' }}>
+        <div
+          className="grid gap-6 md:grid-cols-4 animate-slide-up"
+          style={{ animationDelay: "500ms" }}
+        >
           {Object.entries(tasksByStatus).map(([status, statusTasks]) => {
             const statusStyle = getStatusStyle(status);
             const StatusIcon = statusStyle.icon;
@@ -892,7 +1106,9 @@ export default function TasksPage() {
                 <div className="flex items-center gap-2 px-2">
                   <StatusIcon className={`h-4 w-4 ${statusStyle.color}`} />
                   <h3 className="font-semibold text-sm">{statusStyle.label}</h3>
-                  <Badge variant="secondary" className="text-xs">{statusTasks.length}</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {statusTasks.length}
+                  </Badge>
                 </div>
                 <div className="space-y-3 min-h-[200px] p-2 rounded-xl bg-muted/20 border border-dashed border-white/10">
                   {statusTasks.map(renderTaskCard)}
@@ -905,11 +1121,11 @@ export default function TasksPage() {
 
       {/* List View */}
       {viewMode === "list" && (
-        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: '500ms' }}>
+        <Card variant="glass" className="animate-slide-up" style={{ animationDelay: "500ms" }}>
           <CardContent className="pt-6">
             {filteredTasks.length > 0 ? (
               <div className="space-y-2">
-                {filteredTasks.map(task => {
+                {filteredTasks.map((task) => {
                   const priorityStyle = getPriorityStyle(task.priority);
                   const statusStyle = getStatusStyle(task.status);
                   const StatusIcon = statusStyle.icon;
@@ -924,12 +1140,16 @@ export default function TasksPage() {
                         <h4 className="font-medium truncate">{task.title}</h4>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
                           {task.assigneeName && <span>{task.assigneeName}</span>}
-                          {task.dueAt && <span>Due {new Date(task.dueAt).toLocaleDateString()}</span>}
+                          {task.dueAt && (
+                            <span>Due {new Date(task.dueAt).toLocaleDateString()}</span>
+                          )}
                           {task.incidentId && <span>Incident linked</span>}
                           {task.workflowId && <span>Workflow linked</span>}
                         </div>
                       </div>
-                      <span className={`px-3 py-1 rounded-lg text-xs font-medium bg-gradient-to-r ${priorityStyle.gradient} text-white`}>
+                      <span
+                        className={`px-3 py-1 rounded-lg text-xs font-medium bg-gradient-to-r ${priorityStyle.gradient} text-white`}
+                      >
                         {priorityStyle.label}
                       </span>
                     </div>
@@ -947,120 +1167,205 @@ export default function TasksPage() {
       )}
 
       {/* Create Task Dialog */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Task" size="lg">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">{error}</div>}
-          <Input
-            label="Title"
-            placeholder="Task title"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            required
-          />
-          <Textarea
-            label="Description"
-            placeholder="Task description..."
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          />
-          <Select
-            label="Priority"
-            value={formData.priority}
-            onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-            options={[
-              { value: "critical", label: "Critical" },
-              { value: "high", label: "High" },
-              { value: "medium", label: "Medium" },
-              { value: "low", label: "Low" },
-            ]}
-          />
-          <Input
-            label="Due Date"
-            type="datetime-local"
-            value={formData.dueAt}
-            onChange={(e) => setFormData({ ...formData, dueAt: e.target.value })}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Assignee"
-              value={formData.assigneeId}
-              onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
-              options={[
-                { value: "", label: "Unassigned" },
-                ...users.map((u) => ({ value: u.id, label: `${u.firstName} ${u.lastName}` })),
-              ]}
-            />
-            <Select
-              label="Team"
-              value={formData.teamId}
-              onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
-              options={[
-                { value: "", label: "No team" },
-                ...teams.map((t) => ({ value: t.id, label: t.name })),
-              ]}
-            />
-          </div>
-          <Input
-            label="Incident ID (Optional)"
-            placeholder="Link to incident"
-            value={formData.incidentId}
-            onChange={(e) => setFormData({ ...formData, incidentId: e.target.value })}
-          />
-          <Input
-            label="Workflow ID (Optional)"
-            placeholder="Link to workflow"
-            value={formData.workflowId}
-            onChange={(e) => setFormData({ ...formData, workflowId: e.target.value })}
-          />
-          <Input
-            label="Violation ID (Optional)"
-            placeholder="Link to violation"
-            value={formData.violationId}
-            onChange={(e) => setFormData({ ...formData, violationId: e.target.value })}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Source Entity Type"
-              value={formData.sourceEntityType}
-              onChange={(e) => setFormData({ ...formData, sourceEntityType: e.target.value })}
-              options={[
-                { value: "", label: "None" },
-                { value: "workflow", label: "Workflow" },
-                { value: "incident", label: "Incident" },
-                { value: "violation", label: "Violation" },
-                { value: "policy", label: "Policy" },
-                { value: "problem", label: "Problem" },
-                { value: "change", label: "Change" },
-              ]}
-            />
-            <Input
-              label="Source Entity ID"
-              placeholder="Origin record ID"
-              value={formData.sourceEntityId}
-              onChange={(e) => setFormData({ ...formData, sourceEntityId: e.target.value })}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              label="Estimated Minutes"
-              type="number"
-              min={0}
-              value={formData.estimatedMinutes}
-              onChange={(e) => setFormData({ ...formData, estimatedMinutes: e.target.value })}
-            />
-            <Input
-              label="Tags"
-              placeholder="ops, escalation, customer"
-              value={formData.tagsInput}
-              onChange={(e) => setFormData({ ...formData, tagsInput: e.target.value })}
-            />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="gradient" disabled={createMutation.isPending}>
+      <Dialog
+        open={dialogOpen}
+        onClose={closeCreateDialog}
+        title="Create New Task"
+        size="form"
+        mobileMode="fullscreen"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={closeCreateDialog}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="create-task-form"
+              variant="gradient"
+              disabled={createMutation.isPending}
+            >
               {createMutation.isPending ? "Creating..." : "Create Task"}
             </Button>
           </div>
+        }
+      >
+        <form id="create-task-form" onSubmit={handleSubmit} className="space-y-6">
+          {error ? (
+            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+          ) : null}
+
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Core Details</h3>
+            <Input
+              label="Title"
+              placeholder="Task title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              required
+            />
+            <Textarea
+              label="Description"
+              placeholder="Task description..."
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              <Select
+                label="Priority"
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                options={[
+                  { value: "critical", label: "Critical" },
+                  { value: "high", label: "High" },
+                  { value: "medium", label: "Medium" },
+                  { value: "low", label: "Low" },
+                ]}
+              />
+              <Input
+                label="Due Date"
+                type="datetime-local"
+                value={formData.dueAt}
+                onChange={(e) => setFormData({ ...formData, dueAt: e.target.value })}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Assignment</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Select
+                label="Assignee"
+                value={formData.assigneeId}
+                onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
+                options={[
+                  { value: "", label: "Unassigned" },
+                  ...users.map((u) => ({ value: u.id, label: `${u.firstName} ${u.lastName}` })),
+                ]}
+              />
+              <Select
+                label="Team"
+                value={formData.teamId}
+                onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
+                options={[
+                  { value: "", label: "No team" },
+                  ...teams.map((t) => ({ value: t.id, label: t.name })),
+                ]}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Linked Records</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <RecordPicker
+                label="Incident (optional)"
+                placeholder="Search incident by ticket, title, or id"
+                selected={selectedIncidentOption}
+                onClear={() => {
+                  setFormData({ ...formData, incidentId: "" });
+                  setSelectedIncidentOption(null);
+                }}
+                loadOptions={loadIncidentOptions}
+                onSelect={(option) => {
+                  setFormData({ ...formData, incidentId: option.id });
+                  setSelectedIncidentOption(option);
+                }}
+              />
+              <RecordPicker
+                label="Workflow (optional)"
+                placeholder="Search workflow by name, type, or id"
+                selected={selectedWorkflowOption}
+                onClear={() => {
+                  setFormData({ ...formData, workflowId: "" });
+                  setSelectedWorkflowOption(null);
+                }}
+                loadOptions={loadWorkflowOptions}
+                onSelect={(option) => {
+                  setFormData({ ...formData, workflowId: option.id });
+                  setSelectedWorkflowOption(option);
+                }}
+              />
+            </div>
+            <RecordPicker
+              label="Violation (optional)"
+              placeholder="Search violation by title or id"
+              selected={selectedViolationOption}
+              onClear={() => {
+                setFormData({ ...formData, violationId: "" });
+                setSelectedViolationOption(null);
+              }}
+              loadOptions={loadViolationOptions}
+              onSelect={(option) => {
+                setFormData({ ...formData, violationId: option.id });
+                setSelectedViolationOption(option);
+              }}
+            />
+          </section>
+
+          <details
+            className="rounded-xl border border-border/60 bg-muted/20 p-4"
+            open={taskAdvancedOpen}
+            onToggle={(event) => setTaskAdvancedOpen(event.currentTarget.open)}
+          >
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">
+              Advanced Metadata
+            </summary>
+            <div className="mt-4 space-y-4">
+              <Select
+                label="Source Entity Type"
+                value={formData.sourceEntityType}
+                onChange={(e) => {
+                  setSelectedSourceOption(null);
+                  setFormData({
+                    ...formData,
+                    sourceEntityType: e.target.value,
+                    sourceEntityId: "",
+                  });
+                }}
+                options={[
+                  { value: "", label: "None" },
+                  { value: "workflow", label: "Workflow" },
+                  { value: "incident", label: "Incident" },
+                  { value: "violation", label: "Violation" },
+                  { value: "policy", label: "Policy" },
+                  { value: "problem", label: "Problem" },
+                  { value: "change", label: "Change" },
+                ]}
+              />
+              {sourceType ? (
+                <RecordPicker
+                  label="Source Record"
+                  placeholder={`Search ${sourceType} record`}
+                  selected={selectedSourceOption}
+                  onClear={() => {
+                    setFormData({ ...formData, sourceEntityId: "" });
+                    setSelectedSourceOption(null);
+                  }}
+                  loadOptions={loadSourceOptions}
+                  onSelect={(option) => {
+                    setFormData({ ...formData, sourceEntityId: option.id });
+                    setSelectedSourceOption(option);
+                  }}
+                  required
+                />
+              ) : null}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label="Estimated Minutes"
+                  type="number"
+                  min={0}
+                  value={formData.estimatedMinutes}
+                  onChange={(e) => setFormData({ ...formData, estimatedMinutes: e.target.value })}
+                />
+                <Input
+                  label="Tags"
+                  placeholder="ops, escalation, customer"
+                  value={formData.tagsInput}
+                  onChange={(e) => setFormData({ ...formData, tagsInput: e.target.value })}
+                />
+              </div>
+            </div>
+          </details>
         </form>
       </Dialog>
 
@@ -1080,14 +1385,20 @@ export default function TasksPage() {
         {selectedTask && (
           <div className="space-y-6">
             <div className="flex gap-2">
-              <span className={`px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r ${getPriorityStyle(selectedTask.priority).gradient} text-white`}>
+              <span
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r ${getPriorityStyle(selectedTask.priority).gradient} text-white`}
+              >
                 {getPriorityStyle(selectedTask.priority).label}
               </span>
-              <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getStatusStyle(selectedTask.status).bg} ${getStatusStyle(selectedTask.status).color}`}>
+              <span
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium ${getStatusStyle(selectedTask.status).bg} ${getStatusStyle(selectedTask.status).color}`}
+              >
                 {getStatusStyle(selectedTask.status).label}
               </span>
               {selectedTask.slaStatus && (
-                <span className={`px-3 py-1.5 rounded-lg text-xs font-medium ${slaConfig[selectedTask.slaStatus].bg} ${slaConfig[selectedTask.slaStatus].color}`}>
+                <span
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium ${slaConfig[selectedTask.slaStatus].bg} ${slaConfig[selectedTask.slaStatus].color}`}
+                >
                   {slaConfig[selectedTask.slaStatus].label}
                 </span>
               )}
@@ -1109,17 +1420,22 @@ export default function TasksPage() {
               {selectedTask.dueAt && (
                 <div className="p-3 rounded-xl bg-muted/50">
                   <span className="text-muted-foreground text-xs">Due Date</span>
-                  <p className="font-medium mt-1">{new Date(selectedTask.dueAt).toLocaleString()}</p>
-                </div>
-              )}
-              {selectedTask.timeRemaining !== undefined && selectedTask.slaStatus !== 'completed' && (
-                <div className="p-3 rounded-xl bg-muted/50">
-                  <span className="text-muted-foreground text-xs">Time Remaining</span>
-                  <p className={`font-medium mt-1 ${selectedTask.timeRemaining < 0 ? 'text-rose-500' : ''}`}>
-                    {formatTimeRemaining(selectedTask.timeRemaining)}
+                  <p className="font-medium mt-1">
+                    {new Date(selectedTask.dueAt).toLocaleString()}
                   </p>
                 </div>
               )}
+              {selectedTask.timeRemaining !== undefined &&
+                selectedTask.slaStatus !== "completed" && (
+                  <div className="p-3 rounded-xl bg-muted/50">
+                    <span className="text-muted-foreground text-xs">Time Remaining</span>
+                    <p
+                      className={`font-medium mt-1 ${selectedTask.timeRemaining < 0 ? "text-rose-500" : ""}`}
+                    >
+                      {formatTimeRemaining(selectedTask.timeRemaining)}
+                    </p>
+                  </div>
+                )}
               {selectedTask.estimatedMinutes && (
                 <div className="p-3 rounded-xl bg-muted/50">
                   <span className="text-muted-foreground text-xs">Estimated</span>
@@ -1201,7 +1517,9 @@ export default function TasksPage() {
                   <Button
                     variant="gradient"
                     className="w-full"
-                    onClick={() => startMutation.mutate({ id: selectedTask.id, note: startNote || undefined })}
+                    onClick={() =>
+                      startMutation.mutate({ id: selectedTask.id, note: startNote || undefined })
+                    }
                     disabled={startMutation.isPending}
                   >
                     <Play className="h-4 w-4" />
@@ -1222,11 +1540,13 @@ export default function TasksPage() {
                   <Button
                     variant="gradient"
                     className="w-full"
-                    onClick={() => completeMutation.mutate({
-                      id: selectedTask.id,
-                      minutes: completionMinutes ? parseInt(completionMinutes, 10) : undefined,
-                      note: completionNote || undefined,
-                    })}
+                    onClick={() =>
+                      completeMutation.mutate({
+                        id: selectedTask.id,
+                        minutes: completionMinutes ? parseInt(completionMinutes, 10) : undefined,
+                        note: completionNote || undefined,
+                      })
+                    }
                     disabled={completeMutation.isPending}
                   >
                     <CheckCircle2 className="h-4 w-4" />
@@ -1252,7 +1572,12 @@ export default function TasksPage() {
                   <Button
                     variant="outline"
                     className="w-full text-rose-600 hover:text-rose-700"
-                    onClick={() => cancelMutation.mutate({ id: selectedTask.id, reason: cancelReason || undefined })}
+                    onClick={() =>
+                      cancelMutation.mutate({
+                        id: selectedTask.id,
+                        reason: cancelReason || undefined,
+                      })
+                    }
                     disabled={cancelMutation.isPending}
                   >
                     <XCircle className="h-4 w-4" />
@@ -1289,10 +1614,18 @@ export default function TasksPage() {
               <Separator />
 
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" className="w-full" onClick={() => setEditDialogOpen(true)}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setEditDialogOpen(true)}
+                >
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => setAssignDialogOpen(true)}>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setAssignDialogOpen(true)}
+                >
                   <UserPlus className="h-4 w-4" />
                 </Button>
                 <Button
@@ -1323,7 +1656,11 @@ export default function TasksPage() {
         )}
       </Sheet>
 
-      <Dialog open={filterDialogOpen} onClose={() => setFilterDialogOpen(false)} title="Task Filters">
+      <Dialog
+        open={filterDialogOpen}
+        onClose={() => setFilterDialogOpen(false)}
+        title="Task Filters"
+      >
         <div className="space-y-4">
           <Select
             label="Status"
@@ -1472,7 +1809,11 @@ export default function TasksPage() {
         </div>
       </Dialog>
 
-      <Dialog open={editDialogOpen && !!selectedTask} onClose={() => setEditDialogOpen(false)} title="Edit Task">
+      <Dialog
+        open={editDialogOpen && !!selectedTask}
+        onClose={() => setEditDialogOpen(false)}
+        title="Edit Task"
+      >
         <form
           className="space-y-4"
           onSubmit={(event) => {
@@ -1483,18 +1824,24 @@ export default function TasksPage() {
           <Input
             label="Title"
             value={editForm.title}
-            onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))}
+            onChange={(event) =>
+              setEditForm((current) => ({ ...current, title: event.target.value }))
+            }
             required
           />
           <Textarea
             label="Description"
             value={editForm.description}
-            onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))}
+            onChange={(event) =>
+              setEditForm((current) => ({ ...current, description: event.target.value }))
+            }
           />
           <Select
             label="Priority"
             value={editForm.priority}
-            onChange={(event) => setEditForm((current) => ({ ...current, priority: event.target.value }))}
+            onChange={(event) =>
+              setEditForm((current) => ({ ...current, priority: event.target.value }))
+            }
             options={[
               { value: "critical", label: "Critical" },
               { value: "high", label: "High" },
@@ -1506,7 +1853,9 @@ export default function TasksPage() {
             label="Due Date"
             type="datetime-local"
             value={editForm.dueAt}
-            onChange={(event) => setEditForm((current) => ({ ...current, dueAt: event.target.value }))}
+            onChange={(event) =>
+              setEditForm((current) => ({ ...current, dueAt: event.target.value }))
+            }
           />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setEditDialogOpen(false)}>
@@ -1519,7 +1868,11 @@ export default function TasksPage() {
         </form>
       </Dialog>
 
-      <Dialog open={assignDialogOpen && !!selectedTask} onClose={() => setAssignDialogOpen(false)} title="Assign Task">
+      <Dialog
+        open={assignDialogOpen && !!selectedTask}
+        onClose={() => setAssignDialogOpen(false)}
+        title="Assign Task"
+      >
         <div className="space-y-4">
           <Select
             label="Assignee"
@@ -1537,17 +1890,26 @@ export default function TasksPage() {
             <Button type="button" variant="ghost" onClick={() => setAssignDialogOpen(false)}>
               Cancel
             </Button>
-            <Button variant="gradient" onClick={() => assignMutation.mutate()} disabled={assignMutation.isPending}>
+            <Button
+              variant="gradient"
+              onClick={() => assignMutation.mutate()}
+              disabled={assignMutation.isPending}
+            >
               {assignMutation.isPending ? "Updating..." : "Update Assignee"}
             </Button>
           </div>
         </div>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen && !!selectedTask} onClose={() => setDeleteDialogOpen(false)} title="Delete Task">
+      <Dialog
+        open={deleteDialogOpen && !!selectedTask}
+        onClose={() => setDeleteDialogOpen(false)}
+        title="Delete Task"
+      >
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Delete task <span className="font-medium text-foreground">{selectedTask?.title}</span>? This action cannot be undone.
+            Delete task <span className="font-medium text-foreground">{selectedTask?.title}</span>?
+            This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setDeleteDialogOpen(false)}>

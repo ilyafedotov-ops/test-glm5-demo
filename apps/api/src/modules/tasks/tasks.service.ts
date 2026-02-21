@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { CreateTaskDto, TaskStatus, TaskPriority } from "./dto/create-task.dto";
-import { UpdateTaskDto, AssignTaskDto, StartTaskDto, CompleteTaskDto, ReopenTaskDto } from "./dto/update-task.dto";
+import {
+  UpdateTaskDto,
+  AssignTaskDto,
+  StartTaskDto,
+  CompleteTaskDto,
+  ReopenTaskDto,
+} from "./dto/update-task.dto";
 import { TaskQueryDto } from "./dto/task-query.dto";
 import { TaskEntity, TaskStats } from "./entities/task.entity";
 import { Prisma } from "@prisma/client";
@@ -13,13 +19,22 @@ import {
 } from "@/common/system-links/system-links";
 import { ActivitiesService } from "../activities/activities.service";
 
+type TaskRecordOption = {
+  id: string;
+  label: string;
+  subtitle?: string;
+  status?: string;
+};
+
+type TaskRecordType = "incident" | "workflow" | "violation" | "problem" | "change" | "policy";
+
 @Injectable()
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
 
   constructor(
     private prisma: PrismaService,
-    private activitiesService: ActivitiesService,
+    private activitiesService: ActivitiesService
   ) {}
 
   async getOptions(organizationId: string) {
@@ -38,11 +53,185 @@ export class TasksService {
     return { users, teams };
   }
 
-  async create(
+  async searchRecordOptions(
     organizationId: string,
-    userId: string,
-    dto: CreateTaskDto
-  ): Promise<TaskEntity> {
+    type: string,
+    query?: string,
+    limit = 20
+  ): Promise<TaskRecordOption[]> {
+    const normalizedType = type.trim().toLowerCase() as TaskRecordType;
+    const normalizedQuery = query?.trim();
+    const boundedLimit = Math.max(1, Math.min(limit, 50));
+
+    switch (normalizedType) {
+      case "incident": {
+        const rows = await this.prisma.incident.findMany({
+          where: {
+            organizationId,
+            ...(normalizedQuery
+              ? {
+                  OR: [
+                    { title: { contains: normalizedQuery, mode: "insensitive" } },
+                    { ticketNumber: { contains: normalizedQuery, mode: "insensitive" } },
+                    { id: { contains: normalizedQuery, mode: "insensitive" } },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, title: true, ticketNumber: true, status: true },
+          orderBy: { createdAt: "desc" },
+          take: boundedLimit,
+        });
+
+        return rows.map((row) => ({
+          id: row.id,
+          label: `${row.ticketNumber || this.toFallbackTicket("INC", row.id)} · ${row.title}`,
+          subtitle: `Status: ${row.status}`,
+          status: row.status,
+        }));
+      }
+
+      case "workflow": {
+        const rows = await this.prisma.workflow.findMany({
+          where: {
+            organizationId,
+            ...(normalizedQuery
+              ? {
+                  OR: [
+                    { name: { contains: normalizedQuery, mode: "insensitive" } },
+                    { type: { contains: normalizedQuery, mode: "insensitive" } },
+                    { id: { contains: normalizedQuery, mode: "insensitive" } },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, name: true, type: true, status: true },
+          orderBy: { updatedAt: "desc" },
+          take: boundedLimit,
+        });
+
+        return rows.map((row) => ({
+          id: row.id,
+          label: row.name,
+          subtitle: `${row.type} · ${row.status}`,
+          status: row.status,
+        }));
+      }
+
+      case "violation": {
+        const rows = await this.prisma.violation.findMany({
+          where: {
+            organizationId,
+            ...(normalizedQuery
+              ? {
+                  OR: [
+                    { title: { contains: normalizedQuery, mode: "insensitive" } },
+                    { id: { contains: normalizedQuery, mode: "insensitive" } },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, title: true, severity: true, status: true },
+          orderBy: { detectedAt: "desc" },
+          take: boundedLimit,
+        });
+
+        return rows.map((row) => ({
+          id: row.id,
+          label: row.title,
+          subtitle: `${row.severity} severity · ${row.status}`,
+          status: row.status,
+        }));
+      }
+
+      case "problem": {
+        const rows = await this.prisma.problem.findMany({
+          where: {
+            organizationId,
+            ...(normalizedQuery
+              ? {
+                  OR: [
+                    { title: { contains: normalizedQuery, mode: "insensitive" } },
+                    { ticketNumber: { contains: normalizedQuery, mode: "insensitive" } },
+                    { id: { contains: normalizedQuery, mode: "insensitive" } },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, title: true, ticketNumber: true, status: true },
+          orderBy: { createdAt: "desc" },
+          take: boundedLimit,
+        });
+
+        return rows.map((row) => ({
+          id: row.id,
+          label: `${row.ticketNumber || this.toFallbackTicket("PRB", row.id)} · ${row.title}`,
+          subtitle: `Status: ${row.status}`,
+          status: row.status,
+        }));
+      }
+
+      case "change": {
+        const rows = await this.prisma.changeRequest.findMany({
+          where: {
+            organizationId,
+            ...(normalizedQuery
+              ? {
+                  OR: [
+                    { title: { contains: normalizedQuery, mode: "insensitive" } },
+                    { ticketNumber: { contains: normalizedQuery, mode: "insensitive" } },
+                    { id: { contains: normalizedQuery, mode: "insensitive" } },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, title: true, ticketNumber: true, status: true },
+          orderBy: { createdAt: "desc" },
+          take: boundedLimit,
+        });
+
+        return rows.map((row) => ({
+          id: row.id,
+          label: `${row.ticketNumber || this.toFallbackTicket("CHG", row.id)} · ${row.title}`,
+          subtitle: `Status: ${row.status}`,
+          status: row.status,
+        }));
+      }
+
+      case "policy": {
+        const rows = await this.prisma.policy.findMany({
+          where: {
+            organizationId,
+            ...(normalizedQuery
+              ? {
+                  OR: [
+                    { name: { contains: normalizedQuery, mode: "insensitive" } },
+                    { id: { contains: normalizedQuery, mode: "insensitive" } },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, name: true, status: true, category: true },
+          orderBy: { updatedAt: "desc" },
+          take: boundedLimit,
+        });
+
+        return rows.map((row) => ({
+          id: row.id,
+          label: row.name,
+          subtitle: `${row.category} · ${row.status}`,
+          status: row.status,
+        }));
+      }
+
+      default:
+        throw new BadRequestException(
+          "Unsupported type. Use one of: incident, workflow, violation, problem, change, policy."
+        );
+    }
+  }
+
+  async create(organizationId: string, userId: string, dto: CreateTaskDto): Promise<TaskEntity> {
     const task = await this.prisma.task.create({
       data: {
         title: dto.title,
@@ -83,16 +272,27 @@ export class TasksService {
       actorId: userId,
       title: `Task "${task.title}" created`,
       description: dto.description,
-      metadata: { priority: dto.priority, sourceEntityType: dto.sourceEntityType, sourceEntityId: dto.sourceEntityId },
+      metadata: {
+        priority: dto.priority,
+        sourceEntityType: dto.sourceEntityType,
+        sourceEntityId: dto.sourceEntityId,
+      },
     });
 
     return this.toEntity(task);
   }
 
+  private toFallbackTicket(prefix: string, id: string): string {
+    return `${prefix}-${id.slice(0, 8).toUpperCase()}`;
+  }
+
   async findAll(
     organizationId: string,
     query: TaskQueryDto
-  ): Promise<{ data: TaskEntity[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
+  ): Promise<{
+    data: TaskEntity[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
+  }> {
     const {
       page = 1,
       limit = 20,
@@ -151,11 +351,7 @@ export class TasksService {
         where,
         skip,
         take: limit,
-        orderBy: [
-          { priority: "desc" },
-          { dueAt: "asc" },
-          { createdAt: "desc" },
-        ],
+        orderBy: [{ priority: "desc" }, { dueAt: "asc" }, { createdAt: "desc" }],
         include: {
           assignee: { select: { firstName: true, lastName: true } },
           reporter: { select: { firstName: true, lastName: true } },
@@ -461,7 +657,12 @@ export class TasksService {
     return this.toEntity(updated);
   }
 
-  async cancel(id: string, organizationId: string, userId: string, reason?: string): Promise<TaskEntity> {
+  async cancel(
+    id: string,
+    organizationId: string,
+    userId: string,
+    reason?: string
+  ): Promise<TaskEntity> {
     const task = await this.prisma.task.findFirst({
       where: { id, organizationId },
     });
@@ -515,29 +716,31 @@ export class TasksService {
   async getStats(organizationId: string): Promise<TaskStats> {
     const now = new Date();
 
-    const [total, pending, inProgress, completed, overdue, critical, high, completedTasks] = await Promise.all([
-      this.prisma.task.count({ where: { organizationId } }),
-      this.prisma.task.count({ where: { organizationId, status: TaskStatus.PENDING } }),
-      this.prisma.task.count({ where: { organizationId, status: TaskStatus.IN_PROGRESS } }),
-      this.prisma.task.count({ where: { organizationId, status: TaskStatus.COMPLETED } }),
-      this.prisma.task.count({
-        where: {
-          organizationId,
-          dueAt: { lt: now },
-          status: { notIn: [TaskStatus.COMPLETED, TaskStatus.CANCELLED] },
-        },
-      }),
-      this.prisma.task.count({ where: { organizationId, priority: TaskPriority.CRITICAL } }),
-      this.prisma.task.count({ where: { organizationId, priority: TaskPriority.HIGH } }),
-      this.prisma.task.findMany({
-        where: { organizationId, status: TaskStatus.COMPLETED, actualMinutes: { not: null } },
-        select: { actualMinutes: true },
-      }),
-    ]);
+    const [total, pending, inProgress, completed, overdue, critical, high, completedTasks] =
+      await Promise.all([
+        this.prisma.task.count({ where: { organizationId } }),
+        this.prisma.task.count({ where: { organizationId, status: TaskStatus.PENDING } }),
+        this.prisma.task.count({ where: { organizationId, status: TaskStatus.IN_PROGRESS } }),
+        this.prisma.task.count({ where: { organizationId, status: TaskStatus.COMPLETED } }),
+        this.prisma.task.count({
+          where: {
+            organizationId,
+            dueAt: { lt: now },
+            status: { notIn: [TaskStatus.COMPLETED, TaskStatus.CANCELLED] },
+          },
+        }),
+        this.prisma.task.count({ where: { organizationId, priority: TaskPriority.CRITICAL } }),
+        this.prisma.task.count({ where: { organizationId, priority: TaskPriority.HIGH } }),
+        this.prisma.task.findMany({
+          where: { organizationId, status: TaskStatus.COMPLETED, actualMinutes: { not: null } },
+          select: { actualMinutes: true },
+        }),
+      ]);
 
-    const avgCompletionTime = completedTasks.length > 0
-      ? completedTasks.reduce((sum, t) => sum + (t.actualMinutes || 0), 0) / completedTasks.length
-      : 0;
+    const avgCompletionTime =
+      completedTasks.length > 0
+        ? completedTasks.reduce((sum, t) => sum + (t.actualMinutes || 0), 0) / completedTasks.length
+        : 0;
 
     return { total, pending, inProgress, completed, overdue, critical, high, avgCompletionTime };
   }
@@ -573,7 +776,8 @@ export class TasksService {
 
       if (diffMinutes < 0) {
         slaStatus = "breached";
-      } else if (diffMinutes < 60) { // Less than 1 hour
+      } else if (diffMinutes < 60) {
+        // Less than 1 hour
         slaStatus = "at_risk";
       } else {
         slaStatus = "on_track";
@@ -621,7 +825,11 @@ export class TasksService {
         { type: "workflow", id: task.workflowId, relationship: "belongs_to_workflow" },
         { type: "violation", id: task.violationId, relationship: "remediates_violation" },
         { type: "policy", id: task.policyId, relationship: "implements_policy_control" },
-        { type: task.sourceEntityType || "entity", id: task.sourceEntityId, relationship: "originated_from" },
+        {
+          type: task.sourceEntityType || "entity",
+          id: task.sourceEntityId,
+          relationship: "originated_from",
+        },
       ]),
     };
   }

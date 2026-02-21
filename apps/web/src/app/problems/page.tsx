@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
-import { Wrench, Plus, Search, Calendar, AlertCircle, CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import {
+  Wrench,
+  Plus,
+  Search,
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  ChevronRight,
+} from "lucide-react";
 import { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useToastStore } from "@/stores/toast-store";
@@ -14,8 +23,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { RecordPicker, type RecordPickerOption } from "@/components/ui/record-picker";
 import { TicketNumberBadge } from "@/components/ui/ticket-badge";
-import { PriorityBadge, ImpactUrgencyBadge, PriorityMatrixSelector } from "@/components/ui/priority-matrix";
+import {
+  PriorityBadge,
+  ImpactUrgencyBadge,
+  PriorityMatrixSelector,
+} from "@/components/ui/priority-matrix";
 
 interface Problem {
   id: string;
@@ -45,7 +59,10 @@ interface ProblemsResponse {
   };
 }
 
-async function fetchProblems(token: string, filters?: { isKnownError?: boolean }): Promise<ProblemsResponse> {
+async function fetchProblems(
+  token: string,
+  filters?: { isKnownError?: boolean }
+): Promise<ProblemsResponse> {
   const params = new URLSearchParams();
   if (filters?.isKnownError === true) params.set("isKnownError", "true");
   const query = params.toString();
@@ -71,6 +88,23 @@ async function fetchProblemOptions(token: string): Promise<ProblemOptions> {
   });
   if (res.status === 401) throw new Error("Unauthorized");
   if (!res.ok) throw new Error("Failed to fetch problem options");
+  return res.json();
+}
+
+async function fetchProblemIncidentOptions(
+  token: string,
+  query: string
+): Promise<RecordPickerOption[]> {
+  const params = new URLSearchParams({ limit: "20" });
+  if (query.trim()) {
+    params.set("q", query.trim());
+  }
+
+  const res = await fetch(`${API_URL}/problems/options/incidents?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) throw new Error("Unauthorized");
+  if (!res.ok) throw new Error("Failed to fetch incident options");
   return res.json();
 }
 
@@ -107,9 +141,21 @@ async function createProblem(
 
 const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
   new: { color: "bg-blue-500/10 text-blue-600", icon: AlertCircle, label: "New" },
-  investigating: { color: "bg-purple-500/10 text-purple-600", icon: Wrench, label: "Investigating" },
-  root_cause_identified: { color: "bg-amber-500/10 text-amber-600", icon: CheckCircle, label: "Root Cause Identified" },
-  known_error: { color: "bg-orange-500/10 text-orange-600", icon: AlertCircle, label: "Known Error" },
+  investigating: {
+    color: "bg-purple-500/10 text-purple-600",
+    icon: Wrench,
+    label: "Investigating",
+  },
+  root_cause_identified: {
+    color: "bg-amber-500/10 text-amber-600",
+    icon: CheckCircle,
+    label: "Root Cause Identified",
+  },
+  known_error: {
+    color: "bg-orange-500/10 text-orange-600",
+    icon: AlertCircle,
+    label: "Known Error",
+  },
   resolved: { color: "bg-emerald-500/10 text-emerald-600", icon: CheckCircle, label: "Resolved" },
   closed: { color: "bg-gray-500/10 text-gray-600", icon: XCircle, label: "Closed" },
 };
@@ -141,6 +187,18 @@ export default function ProblemsPage() {
   const [kedbFilter, setKedbFilter] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [formError, setFormError] = useState("");
+  const [incidentOptionCache, setIncidentOptionCache] = useState<
+    Record<string, RecordPickerOption>
+  >({});
+
+  const loadProblemIncidentOptions = useCallback(
+    async (query: string) => (token ? fetchProblemIncidentOptions(token, query) : []),
+    [token]
+  );
+
+  const rememberIncidentOption = useCallback((option: RecordPickerOption) => {
+    setIncidentOptionCache((current) => ({ ...current, [option.id]: option }));
+  }, []);
 
   useEffect(() => {
     if (searchParams.get("create") === "1") {
@@ -154,6 +212,22 @@ export default function ProblemsPage() {
     queryFn: () => fetchProblemOptions(token!),
     enabled: isAuthenticated && !!token && dialogOpen,
   });
+
+  useEffect(() => {
+    if (!options?.incidents) return;
+    setIncidentOptionCache((current) => {
+      const next = { ...current };
+      for (const incident of options.incidents) {
+        next[incident.id] = {
+          id: incident.id,
+          label: `${incident.ticketNumber || incident.id.slice(0, 8).toUpperCase()} · ${incident.title}`,
+          subtitle: `Status: ${incident.status}`,
+          status: incident.status,
+        };
+      }
+      return next;
+    });
+  }, [options?.incidents]);
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -172,15 +246,21 @@ export default function ProblemsPage() {
       }),
     onSuccess: (problem) => {
       queryClient.invalidateQueries({ queryKey: ["problems"] });
-      setDialogOpen(false);
-      setFormData(INITIAL_FORM);
-      setFormError("");
-      addToast({ type: "success", title: "Problem created", description: `Problem ${problem.ticketNumber} has been created.` });
+      closeCreateDialog();
+      addToast({
+        type: "success",
+        title: "Problem created",
+        description: `Problem ${problem.ticketNumber} has been created.`,
+      });
       router.push(`/problems/${problem.id}`);
     },
     onError: (err) => {
       setFormError(err instanceof Error ? err.message : "Failed to create problem");
-      addToast({ type: "error", title: "Create failed", description: err instanceof Error ? err.message : "Unknown error" });
+      addToast({
+        type: "error",
+        title: "Create failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
     },
   });
 
@@ -194,6 +274,12 @@ export default function ProblemsPage() {
     createMutation.mutate();
   };
 
+  function closeCreateDialog() {
+    setDialogOpen(false);
+    setFormData(INITIAL_FORM);
+    setFormError("");
+  }
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["problems", kedbFilter],
     queryFn: () => fetchProblems(token!, { isKnownError: kedbFilter || undefined }),
@@ -201,10 +287,21 @@ export default function ProblemsPage() {
     retry: false,
   });
 
-  const filteredProblems = data?.data?.filter((problem) =>
-    problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    problem.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredProblems =
+    data?.data?.filter(
+      (problem) =>
+        problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        problem.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+  const selectedIncidentOptions = formData.incidentIds.map((id) => {
+    return (
+      incidentOptionCache[id] || {
+        id,
+        label: id.slice(0, 8).toUpperCase(),
+      }
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -267,7 +364,10 @@ export default function ProblemsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Resolved</p>
                 <p className="text-3xl font-bold">
-                  {filteredProblems.filter((p) => p.status === "resolved" || p.status === "closed").length}
+                  {
+                    filteredProblems.filter((p) => p.status === "resolved" || p.status === "closed")
+                      .length
+                  }
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-emerald-500 opacity-50" />
@@ -330,9 +430,13 @@ export default function ProblemsPage() {
                         <TicketNumberBadge ticketNumber={problem.ticketNumber} compact />
                         <h3 className="font-semibold truncate">{problem.title}</h3>
                         {problem.isKnownError && (
-                          <Badge variant="warning" className="text-xs">Known Error</Badge>
+                          <Badge variant="warning" className="text-xs">
+                            Known Error
+                          </Badge>
                         )}
-                        <span className={`px-3 py-1 rounded-lg text-xs font-medium ${statusStyle.color}`}>
+                        <span
+                          className={`px-3 py-1 rounded-lg text-xs font-medium ${statusStyle.color}`}
+                        >
                           <StatusIcon className="h-3 w-3 inline mr-1" />
                           {statusStyle.label}
                         </span>
@@ -374,7 +478,9 @@ export default function ProblemsPage() {
                 <Wrench className="h-8 w-8 text-purple-500" />
               </div>
               <p className="text-lg font-medium">No problems found</p>
-              <p className="text-sm text-muted-foreground mt-1">Create your first problem to start root cause analysis</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create your first problem to start root cause analysis
+              </p>
               <Button variant="gradient" className="mt-6" onClick={() => setDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Problem
@@ -387,153 +493,167 @@ export default function ProblemsPage() {
       {/* Create Problem Dialog */}
       <Dialog
         open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setFormData(INITIAL_FORM);
-          setFormError("");
-        }}
+        onClose={closeCreateDialog}
         title="Create New Problem"
-        size="lg"
+        size="form"
+        mobileMode="fullscreen"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={closeCreateDialog}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="create-problem-form"
+              variant="gradient"
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? "Creating..." : "Create Problem"}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-5 p-6">
+        <form id="create-problem-form" onSubmit={handleSubmit} className="space-y-6">
           {formError && (
             <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
               {formError}
             </div>
           )}
 
-          <Input
-            label="Title"
-            placeholder="Brief description of the problem"
-            value={formData.title}
-            onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-            required
-          />
-
-          <Textarea
-            label="Description"
-            placeholder="Detailed description of the problem and symptoms"
-            value={formData.description}
-            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-            rows={4}
-            required
-          />
-
-          <PriorityMatrixSelector
-            impact={formData.impact}
-            urgency={formData.urgency}
-            onImpactChange={(impact) => setFormData((prev) => ({ ...prev, impact: impact as ImpactUrgency }))}
-            onUrgencyChange={(urgency) => setFormData((prev) => ({ ...prev, urgency: urgency as ImpactUrgency }))}
-            onPriorityChange={(priority) => setFormData((prev) => ({ ...prev, priority }))}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Assignee"
-              value={formData.assigneeId}
-              onChange={(e) => setFormData((prev) => ({ ...prev, assigneeId: e.target.value }))}
-              options={[
-                { value: "", label: "Unassigned" },
-                ...(options?.users?.map((u) => ({
-                  value: u.id,
-                  label: `${u.firstName} ${u.lastName}`,
-                })) ?? []),
-              ]}
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Core Details</h3>
+            <Input
+              label="Title"
+              placeholder="Brief description of the problem"
+              value={formData.title}
+              onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+              required
             />
-            <Select
-              label="Team"
-              value={formData.teamId}
-              onChange={(e) => setFormData((prev) => ({ ...prev, teamId: e.target.value }))}
-              options={[
-                { value: "", label: "No team" },
-                ...(options?.teams?.map((t) => ({
-                  value: t.id,
-                  label: t.name,
-                })) ?? []),
-              ]}
-            />
-          </div>
 
-          <div>
-            <label className="text-sm font-medium mb-2 block">Linked Incidents (optional)</label>
-            <select
-              value=""
-              onChange={(e) => {
-                const id = e.target.value;
-                if (!id || formData.incidentIds.includes(id)) return;
-                setFormData((prev) => ({ ...prev, incidentIds: [...prev.incidentIds, id] }));
-              }}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">Add incident...</option>
-              {(options?.incidents ?? [])
-                .filter((i) => !formData.incidentIds.includes(i.id))
-                .map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.ticketNumber || i.id.slice(0, 8)} · {i.title}
-                  </option>
-                ))}
-            </select>
-            {formData.incidentIds.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {formData.incidentIds.map((id) => {
-                  const inc = options?.incidents?.find((i) => i.id === id);
-                  return (
-                    <Badge
-                      key={id}
-                      variant="secondary"
-                      className="cursor-pointer"
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          incidentIds: prev.incidentIds.filter((x) => x !== id),
-                        }))
-                      }
-                    >
-                      {inc?.ticketNumber || id.slice(0, 8)} ×
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={formData.isKnownError}
-              onChange={(e) => setFormData((prev) => ({ ...prev, isKnownError: e.target.checked }))}
-              className="rounded border-input"
-            />
-            Known Error (identified cause, workaround available)
-          </label>
-
-          {formData.isKnownError && (
             <Textarea
-              label="Workaround"
-              placeholder="Temporary workaround for users while root cause is being fixed"
-              value={formData.workaround}
-              onChange={(e) => setFormData((prev) => ({ ...prev, workaround: e.target.value }))}
+              label="Description"
+              placeholder="Detailed description of the problem and symptoms"
+              value={formData.description}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              rows={4}
+              required
+            />
+
+            <PriorityMatrixSelector
+              impact={formData.impact}
+              urgency={formData.urgency}
+              onImpactChange={(impact) =>
+                setFormData((prev) => ({ ...prev, impact: impact as ImpactUrgency }))
+              }
+              onUrgencyChange={(urgency) =>
+                setFormData((prev) => ({ ...prev, urgency: urgency as ImpactUrgency }))
+              }
+              onPriorityChange={(priority) => setFormData((prev) => ({ ...prev, priority }))}
+            />
+          </section>
+
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              Ownership and Linked Incidents
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Select
+                label="Assignee"
+                value={formData.assigneeId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, assigneeId: e.target.value }))}
+                options={[
+                  { value: "", label: "Unassigned" },
+                  ...(options?.users?.map((u) => ({
+                    value: u.id,
+                    label: `${u.firstName} ${u.lastName}`,
+                  })) ?? []),
+                ]}
+              />
+              <Select
+                label="Team"
+                value={formData.teamId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, teamId: e.target.value }))}
+                options={[
+                  { value: "", label: "No team" },
+                  ...(options?.teams?.map((t) => ({
+                    value: t.id,
+                    label: t.name,
+                  })) ?? []),
+                ]}
+              />
+            </div>
+
+            <RecordPicker
+              label="Add Linked Incident (optional)"
+              placeholder="Search incidents by ticket, title, or id"
+              loadOptions={loadProblemIncidentOptions}
+              onSelect={(option) => {
+                rememberIncidentOption(option);
+                setFormData((prev) =>
+                  prev.incidentIds.includes(option.id)
+                    ? prev
+                    : { ...prev, incidentIds: [...prev.incidentIds, option.id] }
+                );
+              }}
+            />
+
+            {selectedIncidentOptions.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {selectedIncidentOptions.map((incident) => (
+                  <button
+                    key={incident.id}
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs hover:bg-accent"
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        incidentIds: prev.incidentIds.filter((id) => id !== incident.id),
+                      }))
+                    }
+                  >
+                    {incident.label}
+                    <span className="text-muted-foreground">x</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No linked incidents selected.</p>
+            )}
+          </section>
+
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Known Error and Analysis</h3>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={formData.isKnownError}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, isKnownError: e.target.checked }))
+                }
+                className="rounded border-input"
+              />
+              Known Error (identified cause, workaround available)
+            </label>
+
+            {formData.isKnownError ? (
+              <Textarea
+                label="Workaround"
+                placeholder="Temporary workaround for users while root cause is being fixed"
+                value={formData.workaround}
+                onChange={(e) => setFormData((prev) => ({ ...prev, workaround: e.target.value }))}
+                rows={2}
+                required
+              />
+            ) : null}
+
+            <Textarea
+              label="Root Cause (optional)"
+              placeholder="Identified or suspected root cause"
+              value={formData.rootCause}
+              onChange={(e) => setFormData((prev) => ({ ...prev, rootCause: e.target.value }))}
               rows={2}
             />
-          )}
-
-          <Textarea
-            label="Root Cause (optional)"
-            placeholder="Identified or suspected root cause"
-            value={formData.rootCause}
-            onChange={(e) => setFormData((prev) => ({ ...prev, rootCause: e.target.value }))}
-            rows={2}
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="gradient" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create Problem"}
-            </Button>
-          </div>
+          </section>
         </form>
       </Dialog>
     </div>

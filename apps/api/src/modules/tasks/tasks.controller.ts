@@ -25,7 +25,13 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { PermissionsGuard } from "../auth/guards/permissions.guard";
 import { RequirePermissions } from "../auth/decorators/permissions.decorator";
 import { CreateTaskDto } from "./dto/create-task.dto";
-import { UpdateTaskDto, AssignTaskDto, StartTaskDto, CompleteTaskDto, ReopenTaskDto } from "./dto/update-task.dto";
+import {
+  UpdateTaskDto,
+  AssignTaskDto,
+  StartTaskDto,
+  CompleteTaskDto,
+  ReopenTaskDto,
+} from "./dto/update-task.dto";
 import { TaskQueryDto } from "./dto/task-query.dto";
 import { TaskEntity, TaskStats } from "./entities/task.entity";
 import { Audited } from "../audit/decorators/audited.decorator";
@@ -59,6 +65,31 @@ export class TasksController {
     return this.tasksService.getOptions(req.user.organizationId);
   }
 
+  @Get("options/records")
+  @ApiOperation({ summary: "Search records for task linking selectors" })
+  @ApiQuery({
+    name: "type",
+    required: true,
+    enum: ["incident", "workflow", "violation", "problem", "change", "policy"],
+  })
+  @ApiQuery({ name: "q", required: false, description: "Search query" })
+  @ApiQuery({ name: "limit", required: false, description: "Max results (1-50)" })
+  @ApiResponse({ status: 200, description: "Task link record options" })
+  async searchRecordOptions(
+    @Request() req: { user: { organizationId: string } },
+    @Query("type") type: string,
+    @Query("q") q?: string,
+    @Query("limit") limit?: string
+  ) {
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
+    return this.tasksService.searchRecordOptions(
+      req.user.organizationId,
+      type,
+      q,
+      Number.isFinite(parsedLimit) ? parsedLimit : undefined
+    );
+  }
+
   @Get()
   @ApiOperation({ summary: "List all tasks" })
   @ApiResponse({ status: 200, description: "List of tasks" })
@@ -74,9 +105,7 @@ export class TasksController {
   @ApiOperation({ summary: "Get task statistics" })
   @ApiResponse({ status: 200, description: "Task statistics", type: TaskStats })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  async getStats(
-    @Request() req: { user: { organizationId: string } }
-  ): Promise<TaskStats> {
+  async getStats(@Request() req: { user: { organizationId: string } }): Promise<TaskStats> {
     return this.tasksService.getStats(req.user.organizationId);
   }
 

@@ -9,7 +9,7 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
-import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from "@nestjs/swagger";
 import { JwtAuthGuard } from "@/modules/auth/jwt-auth.guard";
 import { PermissionsGuard } from "@/modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "@/modules/auth/decorators/permissions.decorator";
@@ -30,17 +30,30 @@ export class ProblemsController {
   @RequirePermissions("problems:write")
   @Audited({ action: "problem.create", resource: "problem", captureNewValue: true })
   create(@Request() req: any, @Body() dto: CreateProblemDto) {
-    return this.problemsService.create(
-      req.user.organizationId,
-      req.user.userId,
-      dto
-    );
+    return this.problemsService.create(req.user.organizationId, req.user.userId, dto);
   }
 
   @Get("options")
   @ApiOperation({ summary: "Get problem form options (incidents, users, teams)" })
   getOptions(@Request() req: { user: { organizationId: string } }) {
     return this.problemsService.getOptions(req.user.organizationId);
+  }
+
+  @Get("options/incidents")
+  @ApiOperation({ summary: "Search incidents for problem linking selectors" })
+  @ApiQuery({ name: "q", required: false, description: "Search query" })
+  @ApiQuery({ name: "limit", required: false, description: "Max results (1-50)" })
+  getIncidentOptions(
+    @Request() req: { user: { organizationId: string } },
+    @Query("q") q?: string,
+    @Query("limit") limit?: string
+  ) {
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
+    return this.problemsService.searchIncidentOptions(
+      req.user.organizationId,
+      q,
+      Number.isFinite(parsedLimit) ? parsedLimit : undefined
+    );
   }
 
   @Get()
@@ -64,17 +77,8 @@ export class ProblemsController {
     capturePreviousValue: true,
     captureNewValue: true,
   })
-  update(
-    @Request() req: any,
-    @Param("id") id: string,
-    @Body() dto: UpdateProblemDto
-  ) {
-    return this.problemsService.update(
-      req.user.organizationId,
-      id,
-      req.user.userId,
-      dto
-    );
+  update(@Request() req: any, @Param("id") id: string, @Body() dto: UpdateProblemDto) {
+    return this.problemsService.update(req.user.organizationId, id, req.user.userId, dto);
   }
 
   @Post(":id/tasks")
@@ -86,12 +90,7 @@ export class ProblemsController {
     @Param("id") id: string,
     @Body() data: { title: string; description?: string; assigneeId?: string }
   ) {
-    return this.problemsService.addTask(
-      req.user.organizationId,
-      id,
-      req.user.userId,
-      data
-    );
+    return this.problemsService.addTask(req.user.organizationId, id, req.user.userId, data);
   }
 
   @Post(":id/convert-to-known-error")

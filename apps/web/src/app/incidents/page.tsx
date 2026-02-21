@@ -30,7 +30,11 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PriorityBadge, PriorityMatrixSelector, ImpactUrgencyBadge } from "@/components/ui/priority-matrix";
+import {
+  PriorityBadge,
+  PriorityMatrixSelector,
+  ImpactUrgencyBadge,
+} from "@/components/ui/priority-matrix";
 import { ChannelBadge, TicketNumberBadge } from "@/components/ui/ticket-badge";
 import { SLAIndicator } from "@/components/ui/sla-indicator";
 import { StatusMatrix } from "@/components/operations/status-matrix";
@@ -214,11 +218,23 @@ const INITIAL_FORM_DATA: IncidentFormData = {
 
 const STATUS_META: Record<string, { label: string; bg: string; text: string }> = {
   new: { label: "New", bg: "bg-sky-500/10", text: "text-sky-600 dark:text-sky-400" },
-  assigned: { label: "Assigned", bg: "bg-indigo-500/10", text: "text-indigo-600 dark:text-indigo-400" },
+  assigned: {
+    label: "Assigned",
+    bg: "bg-indigo-500/10",
+    text: "text-indigo-600 dark:text-indigo-400",
+  },
   open: { label: "Open", bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400" },
-  in_progress: { label: "In Progress", bg: "bg-violet-500/10", text: "text-violet-600 dark:text-violet-400" },
+  in_progress: {
+    label: "In Progress",
+    bg: "bg-violet-500/10",
+    text: "text-violet-600 dark:text-violet-400",
+  },
   pending: { label: "Pending", bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400" },
-  resolved: { label: "Resolved", bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400" },
+  resolved: {
+    label: "Resolved",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-600 dark:text-emerald-400",
+  },
   closed: { label: "Closed", bg: "bg-slate-500/10", text: "text-slate-600 dark:text-slate-400" },
   cancelled: { label: "Cancelled", bg: "bg-zinc-500/10", text: "text-zinc-600 dark:text-zinc-400" },
   escalated: { label: "Escalated", bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400" },
@@ -420,11 +436,13 @@ async function mergeIncidents(
 }
 
 function formatStatus(status: string) {
-  return STATUS_META[status] ?? {
-    label: status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
-    bg: "bg-slate-500/10",
-    text: "text-slate-600 dark:text-slate-400",
-  };
+  return (
+    STATUS_META[status] ?? {
+      label: status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
+      bg: "bg-slate-500/10",
+      text: "text-slate-600 dark:text-slate-400",
+    }
+  );
 }
 
 function formatTicketNumber(ticketNumber: string | null | undefined, incidentId: string) {
@@ -479,6 +497,7 @@ export default function IncidentsPage() {
     knowledgeArticleId: "",
   });
   const [formData, setFormData] = useState<IncidentFormData>(INITIAL_FORM_DATA);
+  const [incidentAdvancedOpen, setIncidentAdvancedOpen] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -549,13 +568,16 @@ export default function IncidentsPage() {
     retry: false,
   });
 
-  const { data: duplicateCandidates, isLoading: duplicatesLoading, refetch: refetchDuplicates } =
-    useQuery({
-      queryKey: ["incident-duplicates", selectedIncident?.id],
-      queryFn: () => fetchIncidentDuplicates(token!, selectedIncident!.id),
-      enabled: isAuthenticated && !!token && !!selectedIncident?.id,
-      retry: false,
-    });
+  const {
+    data: duplicateCandidates,
+    isLoading: duplicatesLoading,
+    refetch: refetchDuplicates,
+  } = useQuery({
+    queryKey: ["incident-duplicates", selectedIncident?.id],
+    queryFn: () => fetchIncidentDuplicates(token!, selectedIncident!.id),
+    enabled: isAuthenticated && !!token && !!selectedIncident?.id,
+    retry: false,
+  });
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -584,6 +606,7 @@ export default function IncidentsPage() {
       queryClient.invalidateQueries({ queryKey: ["incidents"] });
       setDialogOpen(false);
       setFormData(INITIAL_FORM_DATA);
+      setIncidentAdvancedOpen(false);
       setError("");
       addToast({
         type: "success",
@@ -644,7 +667,9 @@ export default function IncidentsPage() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["incidents"] });
       queryClient.invalidateQueries({ queryKey: ["incident", variables.targetIncidentId] });
-      queryClient.invalidateQueries({ queryKey: ["incident-duplicates", variables.targetIncidentId] });
+      queryClient.invalidateQueries({
+        queryKey: ["incident-duplicates", variables.targetIncidentId],
+      });
       addToast({
         type: "success",
         title: "Duplicate merged",
@@ -742,8 +767,12 @@ export default function IncidentsPage() {
     const totals = {
       total: incidents.length,
       critical: incidents.filter((incident) => incident.priority === "critical").length,
-      active: incidents.filter((incident) => ["new", "assigned", "open", "in_progress", "pending", "escalated"].includes(incident.status)).length,
-      resolved: incidents.filter((incident) => incident.status === "resolved" || incident.status === "closed").length,
+      active: incidents.filter((incident) =>
+        ["new", "assigned", "open", "in_progress", "pending", "escalated"].includes(incident.status)
+      ).length,
+      resolved: incidents.filter(
+        (incident) => incident.status === "resolved" || incident.status === "closed"
+      ).length,
       breached: incidents.filter(
         (incident) => incident.slaResponseMet === false || incident.slaResolutionMet === false
       ).length,
@@ -753,38 +782,41 @@ export default function IncidentsPage() {
   }, [incidents]);
 
   const selectedIncidentRelatedRecords = selectedIncident
-    ? [
-      selectedIncident.assignee
-        ? {
-          type: "user",
-          id: selectedIncident.assignee.id,
-          systemRecordId: `user:${selectedIncident.assignee.id}`,
-          relationship: "assigned_to",
-        }
-        : null,
-      selectedIncident.reporter
-        ? {
-          type: "user",
-          id: selectedIncident.reporter.id,
-          systemRecordId: `user:${selectedIncident.reporter.id}`,
-          relationship: "reported_by",
-        }
-        : null,
-      selectedIncident.team
-        ? {
-          type: "team",
-          id: selectedIncident.team.id,
-          systemRecordId: `team:${selectedIncident.team.id}`,
-          relationship: "owned_by_team",
-        }
-        : null,
-    ].filter(Boolean) as Array<{ type: string; id: string; systemRecordId: string; relationship?: string }>
+    ? ([
+        selectedIncident.assignee
+          ? {
+              type: "user",
+              id: selectedIncident.assignee.id,
+              systemRecordId: `user:${selectedIncident.assignee.id}`,
+              relationship: "assigned_to",
+            }
+          : null,
+        selectedIncident.reporter
+          ? {
+              type: "user",
+              id: selectedIncident.reporter.id,
+              systemRecordId: `user:${selectedIncident.reporter.id}`,
+              relationship: "reported_by",
+            }
+          : null,
+        selectedIncident.team
+          ? {
+              type: "team",
+              id: selectedIncident.team.id,
+              systemRecordId: `team:${selectedIncident.team.id}`,
+              relationship: "owned_by_team",
+            }
+          : null,
+      ].filter(Boolean) as Array<{
+        type: string;
+        id: string;
+        systemRecordId: string;
+        relationship?: string;
+      }>)
     : [];
   const selectedIncidentData = selectedIncidentDetail || selectedIncident;
   const openWorkflowTaskCount = (selectedIncidentData?.tasks || []).filter(
-    (task) =>
-      !!task.workflowId &&
-      ["pending", "in_progress"].includes(task.status)
+    (task) => !!task.workflowId && ["pending", "in_progress"].includes(task.status)
   ).length;
 
   if (!isAuthenticated) return null;
@@ -801,9 +833,17 @@ export default function IncidentsPage() {
               onClick={async () => {
                 try {
                   await exportIncidentsCSV(token!, statusFilter || undefined);
-                  addToast({ title: "Export complete", description: "Incidents downloaded as CSV", type: "success" });
+                  addToast({
+                    title: "Export complete",
+                    description: "Incidents downloaded as CSV",
+                    type: "success",
+                  });
                 } catch {
-                  addToast({ title: "Export failed", description: "Could not export incidents", type: "error" });
+                  addToast({
+                    title: "Export failed",
+                    description: "Could not export incidents",
+                    type: "error",
+                  });
                 }
               }}
             >
@@ -823,11 +863,40 @@ export default function IncidentsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <OperationsMetricCard label="Total Incidents" value={incidentStats.total} icon={AlertTriangle} tone="violet" />
-        <OperationsMetricCard label="Critical Priority" value={incidentStats.critical} icon={Zap} tone="rose" valueClassName="text-rose-500" />
-        <OperationsMetricCard label="Active Queue" value={incidentStats.active} icon={Clock} tone="amber" valueClassName="text-amber-500" />
-        <OperationsMetricCard label="Resolved/Closed" value={incidentStats.resolved} icon={AlertTriangle} tone="emerald" valueClassName="text-emerald-500" />
-        <OperationsMetricCard label="SLA Breaches" value={incidentStats.breached} icon={Filter} tone="cyan" valueClassName="text-cyan-500" />
+        <OperationsMetricCard
+          label="Total Incidents"
+          value={incidentStats.total}
+          icon={AlertTriangle}
+          tone="violet"
+        />
+        <OperationsMetricCard
+          label="Critical Priority"
+          value={incidentStats.critical}
+          icon={Zap}
+          tone="rose"
+          valueClassName="text-rose-500"
+        />
+        <OperationsMetricCard
+          label="Active Queue"
+          value={incidentStats.active}
+          icon={Clock}
+          tone="amber"
+          valueClassName="text-amber-500"
+        />
+        <OperationsMetricCard
+          label="Resolved/Closed"
+          value={incidentStats.resolved}
+          icon={AlertTriangle}
+          tone="emerald"
+          valueClassName="text-emerald-500"
+        />
+        <OperationsMetricCard
+          label="SLA Breaches"
+          value={incidentStats.breached}
+          icon={Filter}
+          tone="cyan"
+          valueClassName="text-cyan-500"
+        />
       </div>
 
       <div className="grid gap-3 rounded-2xl border border-white/20 bg-white/30 p-4 backdrop-blur-sm dark:border-white/10 dark:bg-slate-800/30 md:grid-cols-5">
@@ -904,10 +973,10 @@ export default function IncidentsPage() {
           onChange={(e) => setCategoryFilter(e.target.value)}
           options={[
             { value: "", label: "All Categories" },
-            ...((incidentOptions?.categories || []).map((category) => ({
+            ...(incidentOptions?.categories || []).map((category) => ({
               value: category.id,
               label: category.name,
-            }))),
+            })),
           ]}
         />
         <Select
@@ -986,7 +1055,10 @@ export default function IncidentsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {(correlationMap?.recentActivity || []).slice(0, 5).map((activity) => (
-              <div key={activity.id} className="space-y-1 rounded-xl border border-border/60 bg-muted/30 p-3">
+              <div
+                key={activity.id}
+                className="space-y-1 rounded-xl border border-border/60 bg-muted/30 p-3"
+              >
                 <div className="text-sm font-medium">{activity.title}</div>
                 <SystemRecordBadge value={activity.systemRecordId} compact />
               </div>
@@ -1029,7 +1101,9 @@ export default function IncidentsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <TicketNumberBadge ticketNumber={ticket} compact />
-                          <span className={`rounded-lg px-2.5 py-1 text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+                          <span
+                            className={`rounded-lg px-2.5 py-1 text-xs font-medium ${statusStyle.bg} ${statusStyle.text}`}
+                          >
                             {statusStyle.label}
                           </span>
                           <ChannelBadge channel={incident.channel} />
@@ -1040,7 +1114,9 @@ export default function IncidentsPage() {
                           )}
                         </div>
                         <h3 className="truncate text-base font-semibold">{incident.title}</h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{incident.description}</p>
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                          {incident.description}
+                        </p>
 
                         <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-1.5">
@@ -1058,9 +1134,15 @@ export default function IncidentsPage() {
 
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <PriorityBadge priority={incident.priority} />
-                          {incident.slaResponseDue ? <SLAIndicator dueAt={incident.slaResponseDue} type="response" compact /> : null}
+                          {incident.slaResponseDue ? (
+                            <SLAIndicator dueAt={incident.slaResponseDue} type="response" compact />
+                          ) : null}
                           {incident.slaResolutionDue ? (
-                            <SLAIndicator dueAt={incident.slaResolutionDue} type="resolution" compact />
+                            <SLAIndicator
+                              dueAt={incident.slaResolutionDue}
+                              type="resolution"
+                              compact
+                            />
                           ) : null}
                         </div>
 
@@ -1081,7 +1163,9 @@ export default function IncidentsPage() {
                 <AlertTriangle className="h-8 w-8 text-violet-500" />
               </div>
               <p className="text-lg font-medium">No incidents found</p>
-              <p className="mt-1 text-sm text-muted-foreground">Try adjusting your search and filters.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try adjusting your search and filters.
+              </p>
               <Button variant="gradient" className="mt-6" onClick={() => setDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Create Incident
@@ -1091,150 +1175,219 @@ export default function IncidentsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Create New Incident" size="lg">
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <Dialog
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setIncidentAdvancedOpen(false);
+        }}
+        title="Create New Incident"
+        size="form"
+        mobileMode="fullscreen"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setDialogOpen(false);
+                setIncidentAdvancedOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="create-incident-form"
+              variant="gradient"
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? "Creating..." : "Create Incident"}
+            </Button>
+          </div>
+        }
+      >
+        <form id="create-incident-form" onSubmit={handleSubmit} className="space-y-6">
           {error ? (
             <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
               {error}
             </div>
           ) : null}
 
-          <Input
-            label="Title"
-            placeholder="Brief description of the incident"
-            value={formData.title}
-            onChange={(e) => setFormData((current) => ({ ...current, title: e.target.value }))}
-            required
-          />
-
-          <Textarea
-            label="Description"
-            placeholder="Detailed description of the incident"
-            value={formData.description}
-            onChange={(e) => setFormData((current) => ({ ...current, description: e.target.value }))}
-            required
-          />
-
-          <PriorityMatrixSelector
-            impact={formData.impact}
-            urgency={formData.urgency}
-            onImpactChange={(impact) => setFormData((current) => ({ ...current, impact: impact as ImpactLevel }))}
-            onUrgencyChange={(urgency) => setFormData((current) => ({ ...current, urgency: urgency as ImpactLevel }))}
-            onPriorityChange={handlePriorityChange}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Channel"
-              value={formData.channel}
-              onChange={(e) => setFormData((current) => ({ ...current, channel: e.target.value as IncidentChannel }))}
-              options={CHANNEL_OPTIONS}
-            />
-            <Select
-              label="Category"
-              value={formData.categoryId}
-              onChange={(e) => setFormData((current) => ({ ...current, categoryId: e.target.value }))}
-              options={[
-                { value: "", label: "Uncategorized" },
-                ...((incidentOptions?.categories || []).map((category) => ({
-                  value: category.id,
-                  label: category.name,
-                }))),
-              ]}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Core Details</h3>
             <Input
-              label="Tags"
-              placeholder="security, production, api"
-              value={formData.tagsInput}
-              onChange={(e) => setFormData((current) => ({ ...current, tagsInput: e.target.value }))}
+              label="Title"
+              placeholder="Brief description of the incident"
+              value={formData.title}
+              onChange={(e) => setFormData((current) => ({ ...current, title: e.target.value }))}
+              required
             />
-            <Select
-              label="Add Configuration Item"
-              value={formData.selectedConfigurationItemId}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (!value) return;
-                setFormData((current) => {
-                  if (current.configurationItemIds.includes(value)) {
-                    return { ...current, selectedConfigurationItemId: "" };
-                  }
-                  return {
-                    ...current,
-                    selectedConfigurationItemId: "",
-                    configurationItemIds: [...current.configurationItemIds, value],
-                  };
-                });
-              }}
-              options={[
-                { value: "", label: "Select configuration item" },
-                ...((incidentOptions?.configurationItems || []).map((item) => ({
-                  value: item.id,
-                  label: `${item.name} (${item.type})`,
-                }))),
-              ]}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Link to Problem (optional)"
-              value={formData.problemId}
-              onChange={(e) => setFormData((current) => ({ ...current, problemId: e.target.value }))}
-              options={[
-                { value: "", label: "No problem linked" },
-                ...((incidentOptions?.problems || []).map((p) => ({
-                  value: p.id,
-                  label: `${p.ticketNumber || p.id.slice(0, 8)} · ${p.title}`,
-                }))),
-              ]}
-            />
-            <label className="flex items-center gap-2 text-sm pt-8">
-              <input
-                type="checkbox"
-                checked={formData.isMajorIncident}
-                onChange={(e) => setFormData((current) => ({ ...current, isMajorIncident: e.target.checked }))}
-                className="rounded border-input"
-              />
-              Major Incident (high-impact event)
-            </label>
-          </div>
-          <div className="rounded-xl bg-muted/50 p-3">
-            <span className="text-xs text-muted-foreground">Linked Configuration Items</span>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {formData.configurationItemIds.length === 0 ? (
-                <span className="text-xs text-muted-foreground">No configuration items selected.</span>
-              ) : (
-                formData.configurationItemIds.map((id) => {
-                  const item = incidentOptions?.configurationItems?.find((ci) => ci.id === id);
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-background px-2 py-1 text-xs"
-                      onClick={() =>
-                        setFormData((current) => ({
-                          ...current,
-                          configurationItemIds: current.configurationItemIds.filter((ciId) => ciId !== id),
-                        }))
-                      }
-                    >
-                      {item?.name || id}
-                      <span className="text-muted-foreground">x</span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="gradient" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create Incident"}
-            </Button>
+            <Textarea
+              label="Description"
+              placeholder="Detailed description of the incident"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData((current) => ({ ...current, description: e.target.value }))
+              }
+              required
+            />
+          </section>
+
+          <section className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground">Priority and Classification</h3>
+            <PriorityMatrixSelector
+              impact={formData.impact}
+              urgency={formData.urgency}
+              onImpactChange={(impact) =>
+                setFormData((current) => ({ ...current, impact: impact as ImpactLevel }))
+              }
+              onUrgencyChange={(urgency) =>
+                setFormData((current) => ({ ...current, urgency: urgency as ImpactLevel }))
+              }
+              onPriorityChange={handlePriorityChange}
+            />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Select
+                label="Channel"
+                value={formData.channel}
+                onChange={(e) =>
+                  setFormData((current) => ({
+                    ...current,
+                    channel: e.target.value as IncidentChannel,
+                  }))
+                }
+                options={CHANNEL_OPTIONS}
+              />
+              <Select
+                label="Category"
+                value={formData.categoryId}
+                onChange={(e) =>
+                  setFormData((current) => ({ ...current, categoryId: e.target.value }))
+                }
+                options={[
+                  { value: "", label: "Uncategorized" },
+                  ...(incidentOptions?.categories || []).map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  })),
+                ]}
+              />
+            </div>
+          </section>
+
+          <details
+            className="rounded-xl border border-border/60 bg-muted/20 p-4"
+            open={incidentAdvancedOpen}
+            onToggle={(event) => setIncidentAdvancedOpen(event.currentTarget.open)}
+          >
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">
+              Advanced Details
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label="Tags"
+                  placeholder="security, production, api"
+                  value={formData.tagsInput}
+                  onChange={(e) =>
+                    setFormData((current) => ({ ...current, tagsInput: e.target.value }))
+                  }
+                />
+                <Select
+                  label="Add Configuration Item"
+                  value={formData.selectedConfigurationItemId}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (!value) return;
+                    setFormData((current) => {
+                      if (current.configurationItemIds.includes(value)) {
+                        return { ...current, selectedConfigurationItemId: "" };
+                      }
+                      return {
+                        ...current,
+                        selectedConfigurationItemId: "",
+                        configurationItemIds: [...current.configurationItemIds, value],
+                      };
+                    });
+                  }}
+                  options={[
+                    { value: "", label: "Select configuration item" },
+                    ...(incidentOptions?.configurationItems || []).map((item) => ({
+                      value: item.id,
+                      label: `${item.name} (${item.type})`,
+                    })),
+                  ]}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Select
+                  label="Link to Problem (optional)"
+                  value={formData.problemId}
+                  onChange={(e) =>
+                    setFormData((current) => ({ ...current, problemId: e.target.value }))
+                  }
+                  options={[
+                    { value: "", label: "No problem linked" },
+                    ...(incidentOptions?.problems || []).map((p) => ({
+                      value: p.id,
+                      label: `${p.ticketNumber || p.id.slice(0, 8)} · ${p.title}`,
+                    })),
+                  ]}
+                />
+                <label className="flex items-center gap-2 self-end text-sm">
+                  <input
+                    type="checkbox"
+                    checked={formData.isMajorIncident}
+                    onChange={(e) =>
+                      setFormData((current) => ({ ...current, isMajorIncident: e.target.checked }))
+                    }
+                    className="rounded border-input"
+                  />
+                  Major Incident (high-impact event)
+                </label>
+              </div>
+
+              <div className="rounded-xl bg-muted/50 p-3">
+                <span className="text-xs text-muted-foreground">Linked Configuration Items</span>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {formData.configurationItemIds.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">
+                      No configuration items selected.
+                    </span>
+                  ) : (
+                    formData.configurationItemIds.map((id) => {
+                      const item = incidentOptions?.configurationItems?.find((ci) => ci.id === id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-background px-2 py-1 text-xs"
+                          onClick={() =>
+                            setFormData((current) => ({
+                              ...current,
+                              configurationItemIds: current.configurationItemIds.filter(
+                                (ciId) => ciId !== id
+                              ),
+                            }))
+                          }
+                        >
+                          {item?.name || id}
+                          <span className="text-muted-foreground">x</span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <div className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+            Required fields: Title, Description, Impact/Urgency (for priority).
           </div>
         </form>
       </Dialog>
@@ -1242,6 +1395,7 @@ export default function IncidentsPage() {
       <Sheet
         open={!!selectedIncident}
         onClose={() => setSelectedIncident(null)}
+        size="lg"
         title={
           selectedIncidentData
             ? `${formatTicketNumber(selectedIncidentData.ticketNumber, selectedIncidentData.id)} - ${selectedIncidentData.title}`
@@ -1261,7 +1415,10 @@ export default function IncidentsPage() {
               {selectedIncidentData.tags?.includes("major") && (
                 <Badge variant="destructive">Major Incident</Badge>
               )}
-              <ImpactUrgencyBadge impact={selectedIncidentData.impact} urgency={selectedIncidentData.urgency} />
+              <ImpactUrgencyBadge
+                impact={selectedIncidentData.impact}
+                urgency={selectedIncidentData.urgency}
+              />
             </div>
 
             <div className="rounded-xl bg-muted/50 p-4">
@@ -1277,9 +1434,12 @@ export default function IncidentsPage() {
                 {selectedIncidentData.slaResponseDue ? (
                   <div className="space-y-2">
                     <SLAIndicator dueAt={selectedIncidentData.slaResponseDue} type="response" />
-                    {selectedIncidentData.slaResponseMet !== null && selectedIncidentData.slaResponseMet !== undefined ? (
+                    {selectedIncidentData.slaResponseMet !== null &&
+                    selectedIncidentData.slaResponseMet !== undefined ? (
                       <Badge variant={selectedIncidentData.slaResponseMet ? "success" : "error"}>
-                        {selectedIncidentData.slaResponseMet ? "Response SLA met" : "Response SLA breached"}
+                        {selectedIncidentData.slaResponseMet
+                          ? "Response SLA met"
+                          : "Response SLA breached"}
                       </Badge>
                     ) : null}
                   </div>
@@ -1292,9 +1452,12 @@ export default function IncidentsPage() {
                 {selectedIncidentData.slaResolutionDue ? (
                   <div className="space-y-2">
                     <SLAIndicator dueAt={selectedIncidentData.slaResolutionDue} type="resolution" />
-                    {selectedIncidentData.slaResolutionMet !== null && selectedIncidentData.slaResolutionMet !== undefined ? (
+                    {selectedIncidentData.slaResolutionMet !== null &&
+                    selectedIncidentData.slaResolutionMet !== undefined ? (
                       <Badge variant={selectedIncidentData.slaResolutionMet ? "success" : "error"}>
-                        {selectedIncidentData.slaResolutionMet ? "Resolution SLA met" : "Resolution SLA breached"}
+                        {selectedIncidentData.slaResolutionMet
+                          ? "Resolution SLA met"
+                          : "Resolution SLA breached"}
                       </Badge>
                     ) : null}
                   </div>
@@ -1313,7 +1476,9 @@ export default function IncidentsPage() {
               <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-xl bg-muted/50 p-3">
                   <span className="text-xs text-muted-foreground">Created</span>
-                  <p className="mt-1 font-medium">{formatDateTime(selectedIncidentData.createdAt)}</p>
+                  <p className="mt-1 font-medium">
+                    {formatDateTime(selectedIncidentData.createdAt)}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-muted/50 p-3">
                   <span className="text-xs text-muted-foreground">Ticket</span>
@@ -1332,7 +1497,8 @@ export default function IncidentsPage() {
                         </AvatarFallback>
                       </Avatar>
                       <span className="font-medium">
-                        {selectedIncidentData.reporter.firstName} {selectedIncidentData.reporter.lastName}
+                        {selectedIncidentData.reporter.firstName}{" "}
+                        {selectedIncidentData.reporter.lastName}
                       </span>
                     </div>
                   </div>
@@ -1361,7 +1527,8 @@ export default function IncidentsPage() {
                     </div>
                   </div>
                 ) : null}
-                {selectedIncidentData.configurationItems && selectedIncidentData.configurationItems.length > 0 ? (
+                {selectedIncidentData.configurationItems &&
+                selectedIncidentData.configurationItems.length > 0 ? (
                   <div className="rounded-xl bg-muted/50 p-3 sm:col-span-2">
                     <span className="text-xs text-muted-foreground">Configuration Items</span>
                     <div className="mt-1 flex flex-wrap gap-1.5">
@@ -1379,7 +1546,9 @@ export default function IncidentsPage() {
             <Separator />
 
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">Linked Workflow and Tasks</h4>
+              <h4 className="text-sm font-medium text-muted-foreground">
+                Linked Workflow and Tasks
+              </h4>
               {selectedIncidentDetailLoading ? (
                 <div className="h-20 rounded-xl bg-muted/50 shimmer" />
               ) : (
@@ -1404,14 +1573,18 @@ export default function IncidentsPage() {
                     <Button
                       variant="outline"
                       className="mt-2 w-full"
-                      onClick={() => router.push(`/workflows?incidentId=${selectedIncidentData.id}`)}
+                      onClick={() =>
+                        router.push(`/workflows?incidentId=${selectedIncidentData.id}`)
+                      }
                     >
                       View All Workflows
                     </Button>
                   </div>
                   <div className="rounded-xl bg-muted/50 p-3">
                     <div className="text-xs text-muted-foreground">Tasks</div>
-                    <div className="mt-1 text-lg font-semibold">{selectedIncidentData.tasks?.length || 0}</div>
+                    <div className="mt-1 text-lg font-semibold">
+                      {selectedIncidentData.tasks?.length || 0}
+                    </div>
                     <div className="mt-2 space-y-1">
                       {(selectedIncidentData.tasks || []).slice(0, 3).map((task) => (
                         <button
@@ -1449,7 +1622,12 @@ export default function IncidentsPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium text-muted-foreground">Potential Duplicates</h4>
-                <Button variant="outline" size="sm" onClick={() => refetchDuplicates()} disabled={duplicatesLoading}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetchDuplicates()}
+                  disabled={duplicatesLoading}
+                >
                   Refresh
                 </Button>
               </div>
@@ -1512,7 +1690,8 @@ export default function IncidentsPage() {
 
             {openWorkflowTaskCount > 0 ? (
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-                Resolve is blocked until correlated workflow tasks are completed. Open workflow tasks: {openWorkflowTaskCount}.
+                Resolve is blocked until correlated workflow tasks are completed. Open workflow
+                tasks: {openWorkflowTaskCount}.
               </div>
             ) : null}
 
@@ -1526,8 +1705,7 @@ export default function IncidentsPage() {
                     size="sm"
                     onClick={() => openTransitionDialog(selectedIncidentData, status.value)}
                     disabled={
-                      transitionMutation.isPending ||
-                      selectedIncidentData.status === status.value
+                      transitionMutation.isPending || selectedIncidentData.status === status.value
                     }
                     className="text-xs"
                   >
@@ -1560,7 +1738,9 @@ export default function IncidentsPage() {
           <Select
             label="Target Status"
             value={transitionForm.toStatus}
-            onChange={(event) => setTransitionForm((current) => ({ ...current, toStatus: event.target.value }))}
+            onChange={(event) =>
+              setTransitionForm((current) => ({ ...current, toStatus: event.target.value }))
+            }
             options={STATUS_TRANSITIONS}
           />
 
@@ -1570,7 +1750,10 @@ export default function IncidentsPage() {
                 label="Pending Reason"
                 value={transitionForm.pendingReason}
                 onChange={(event) =>
-                  setTransitionForm((current) => ({ ...current, pendingReason: event.target.value }))
+                  setTransitionForm((current) => ({
+                    ...current,
+                    pendingReason: event.target.value,
+                  }))
                 }
                 placeholder="Waiting for vendor/customer/change window"
               />
@@ -1591,32 +1774,42 @@ export default function IncidentsPage() {
                 label="Resolution Summary"
                 value={transitionForm.resolutionSummary}
                 onChange={(event) =>
-                  setTransitionForm((current) => ({ ...current, resolutionSummary: event.target.value }))
+                  setTransitionForm((current) => ({
+                    ...current,
+                    resolutionSummary: event.target.value,
+                  }))
                 }
                 placeholder="Describe what fixed the incident"
               />
               <Select
                 label="Link to Problem (optional)"
                 value={transitionForm.problemId}
-                onChange={(e) => setTransitionForm((current) => ({ ...current, problemId: e.target.value }))}
+                onChange={(e) =>
+                  setTransitionForm((current) => ({ ...current, problemId: e.target.value }))
+                }
                 options={[
                   { value: "", label: "No problem linked" },
-                  ...((incidentOptions?.problems || []).map((p) => ({
+                  ...(incidentOptions?.problems || []).map((p) => ({
                     value: p.id,
                     label: `${p.ticketNumber || p.id.slice(0, 8)} · ${p.title}`,
-                  }))),
+                  })),
                 ]}
               />
               <Select
                 label="Link to Knowledge Article (optional)"
                 value={transitionForm.knowledgeArticleId}
-                onChange={(e) => setTransitionForm((current) => ({ ...current, knowledgeArticleId: e.target.value }))}
+                onChange={(e) =>
+                  setTransitionForm((current) => ({
+                    ...current,
+                    knowledgeArticleId: e.target.value,
+                  }))
+                }
                 options={[
                   { value: "", label: "No article linked" },
-                  ...((incidentOptions?.knowledgeArticles || []).map((ka) => ({
+                  ...(incidentOptions?.knowledgeArticles || []).map((ka) => ({
                     value: ka.id,
                     label: ka.title,
-                  }))),
+                  })),
                 ]}
               />
             </>
@@ -1632,34 +1825,41 @@ export default function IncidentsPage() {
                 }
                 options={[
                   { value: "", label: "Select closure code" },
-                  ...((incidentOptions?.closureCodes || []).map((code) => ({
+                  ...(incidentOptions?.closureCodes || []).map((code) => ({
                     value: code,
                     label: code.replace(/_/g, " "),
-                  }))),
+                  })),
                 ]}
               />
               <Select
                 label="Link to Problem (optional)"
                 value={transitionForm.problemId}
-                onChange={(e) => setTransitionForm((current) => ({ ...current, problemId: e.target.value }))}
+                onChange={(e) =>
+                  setTransitionForm((current) => ({ ...current, problemId: e.target.value }))
+                }
                 options={[
                   { value: "", label: "No problem linked" },
-                  ...((incidentOptions?.problems || []).map((p) => ({
+                  ...(incidentOptions?.problems || []).map((p) => ({
                     value: p.id,
                     label: `${p.ticketNumber || p.id.slice(0, 8)} · ${p.title}`,
-                  }))),
+                  })),
                 ]}
               />
               <Select
                 label="Link to Knowledge Article (optional)"
                 value={transitionForm.knowledgeArticleId}
-                onChange={(e) => setTransitionForm((current) => ({ ...current, knowledgeArticleId: e.target.value }))}
+                onChange={(e) =>
+                  setTransitionForm((current) => ({
+                    ...current,
+                    knowledgeArticleId: e.target.value,
+                  }))
+                }
                 options={[
                   { value: "", label: "No article linked" },
-                  ...((incidentOptions?.knowledgeArticles || []).map((ka) => ({
+                  ...(incidentOptions?.knowledgeArticles || []).map((ka) => ({
                     value: ka.id,
                     label: ka.title,
-                  }))),
+                  })),
                 ]}
               />
             </>

@@ -4,11 +4,7 @@ import { TicketsService } from "../tickets/tickets.service";
 import { PriorityMatrixService } from "../sla/priority-matrix.service";
 import { SLACalculationService } from "../sla/sla-calculation.service";
 import { ActivitiesService } from "../activities/activities.service";
-import {
-  CreateProblemDto,
-  UpdateProblemDto,
-  PriorityLevel,
-} from "./dto/create-problem.dto";
+import { CreateProblemDto, UpdateProblemDto, PriorityLevel } from "./dto/create-problem.dto";
 import { Prisma } from "@prisma/client";
 
 @Injectable()
@@ -20,23 +16,17 @@ export class ProblemsService {
     private ticketsService: TicketsService,
     private priorityMatrix: PriorityMatrixService,
     private slaCalculation: SLACalculationService,
-    private activitiesService: ActivitiesService,
+    private activitiesService: ActivitiesService
   ) {}
 
   async create(organizationId: string, userId: string, dto: CreateProblemDto) {
     // Generate ticket number
-    const ticketNumber = await this.ticketsService.generateTicketNumber(
-      organizationId,
-      "problem"
-    );
+    const ticketNumber = await this.ticketsService.generateTicketNumber(organizationId, "problem");
 
     // Calculate priority from impact and urgency
     let priority: PriorityLevel = dto.priority || "medium";
     if (dto.impact && dto.urgency) {
-      priority = this.priorityMatrix.calculatePriority(
-        dto.impact,
-        dto.urgency
-      ) as PriorityLevel;
+      priority = this.priorityMatrix.calculatePriority(dto.impact, dto.urgency) as PriorityLevel;
     }
 
     const problem = await this.prisma.problem.create({
@@ -120,6 +110,36 @@ export class ProblemsService {
       users,
       teams,
     };
+  }
+
+  async searchIncidentOptions(organizationId: string, query?: string, limit = 20) {
+    const normalizedQuery = query?.trim();
+    const boundedLimit = Math.max(1, Math.min(limit, 50));
+
+    const incidents = await this.prisma.incident.findMany({
+      where: {
+        organizationId,
+        ...(normalizedQuery
+          ? {
+              OR: [
+                { title: { contains: normalizedQuery, mode: "insensitive" } },
+                { ticketNumber: { contains: normalizedQuery, mode: "insensitive" } },
+                { id: { contains: normalizedQuery, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
+      select: { id: true, ticketNumber: true, title: true, status: true },
+      orderBy: { createdAt: "desc" },
+      take: boundedLimit,
+    });
+
+    return incidents.map((incident) => ({
+      id: incident.id,
+      label: `${incident.ticketNumber || this.toFallbackTicket("INC", incident.id)} · ${incident.title}`,
+      subtitle: `Status: ${incident.status}`,
+      status: incident.status,
+    }));
   }
 
   async findAll(organizationId: string, query: any) {
@@ -208,12 +228,7 @@ export class ProblemsService {
     return problem;
   }
 
-  async update(
-    organizationId: string,
-    id: string,
-    userId: string,
-    dto: UpdateProblemDto
-  ) {
+  async update(organizationId: string, id: string, userId: string, dto: UpdateProblemDto) {
     const problem = await this.findOne(organizationId, id);
 
     // Recalculate priority if impact or urgency changed
@@ -313,5 +328,9 @@ export class ProblemsService {
     });
 
     return updated;
+  }
+
+  private toFallbackTicket(prefix: string, id: string): string {
+    return `${prefix}-${id.slice(0, 8).toUpperCase()}`;
   }
 }

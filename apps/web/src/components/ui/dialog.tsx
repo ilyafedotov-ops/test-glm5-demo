@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useId } from "react";
 import { X } from "lucide-react";
+import { FocusTrap } from "@/lib/accessibility/accessibility";
+import { cn } from "@nexusops/ui";
 
-type DialogSize = "sm" | "md" | "lg" | "xl";
+type DialogSize = "sm" | "md" | "lg" | "xl" | "form";
+type DialogMobileMode = "fullscreen" | "centered";
 
 const dialogSizeClasses: Record<DialogSize, string> = {
-  sm: "max-w-md",
-  md: "max-w-lg",
-  lg: "max-w-2xl",
-  xl: "max-w-4xl",
+  sm: "md:max-w-md",
+  md: "md:max-w-lg",
+  lg: "md:max-w-2xl",
+  xl: "md:max-w-4xl",
+  form: "md:max-w-[44rem] xl:max-w-[56rem]",
 };
 
 interface DialogProps {
@@ -17,10 +21,25 @@ interface DialogProps {
   onClose: () => void;
   title?: string;
   size?: DialogSize;
+  mobileMode?: DialogMobileMode;
+  footer?: React.ReactNode;
+  bodyClassName?: string;
+  footerClassName?: string;
   children: React.ReactNode;
 }
 
-export function Dialog({ open, onClose, title, size = "md", children }: DialogProps) {
+export function Dialog({
+  open,
+  onClose,
+  title,
+  size = "md",
+  mobileMode = "centered",
+  footer,
+  bodyClassName,
+  footerClassName,
+  children,
+}: DialogProps) {
+  const titleId = useId();
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -43,26 +62,50 @@ export function Dialog({ open, onClose, title, size = "md", children }: DialogPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
-        onClick={onClose}
-      />
-      <div
-        className={`relative z-50 w-full ${dialogSizeClasses[size]} bg-background rounded-lg shadow-lg border p-6 mx-4 max-h-[90vh] overflow-y-auto`}
-      >
-        {title && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <button
-              onClick={onClose}
-              className="p-1 rounded-md hover:bg-accent"
+      <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose} />
+      <FocusTrap active={open}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
+          className={cn(
+            "relative z-50 flex w-full max-w-none flex-col overflow-hidden border bg-background shadow-lg",
+            dialogSizeClasses[size],
+            mobileMode === "fullscreen"
+              ? "mx-0 h-[100dvh] max-h-[100dvh] rounded-none md:mx-4 md:h-auto md:max-h-[90vh] md:rounded-lg"
+              : "mx-4 max-h-[90vh] rounded-lg"
+          )}
+        >
+          {title ? (
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/95 p-4 backdrop-blur-sm">
+              <h2 id={titleId} className="text-lg font-semibold">
+                {title}
+              </h2>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md p-1 hover:bg-accent"
+                aria-label="Close dialog"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : null}
+
+          <div className={cn("min-h-0 overflow-y-auto p-6", bodyClassName)}>{children}</div>
+
+          {footer ? (
+            <div
+              className={cn(
+                "sticky bottom-0 z-10 border-t bg-background/95 px-6 py-4 backdrop-blur-sm",
+                footerClassName
+              )}
             >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        {children}
-      </div>
+              {footer}
+            </div>
+          ) : null}
+        </div>
+      </FocusTrap>
     </div>
   );
 }
