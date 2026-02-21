@@ -188,6 +188,29 @@ Search and reuse operational knowledge, runbooks, and structured articles.
 
 ![Knowledge Base](docs/screenshots/knowledge-v2.png)
 
+## UI Tour (Animations)
+
+Animated walkthroughs are generated from live app navigation and stored in `docs/videos/`.
+
+### 1) Sidebar expand/collapse interaction
+
+![Sidebar Expand/Collapse](docs/videos/01-sidebar-expand-collapse.gif)
+
+### 2) Dashboard → Incidents → Problems → Changes page tour
+
+![Dashboard to Changes Tour](docs/videos/02-dashboard-incidents-problems-changes-tour.gif)
+
+### 3) Tasks / Workflows / Reports / Knowledge quick navigation
+
+![Quick Navigation Tour](docs/videos/03-tasks-workflows-reports-knowledge-quick-navigation.gif)
+
+To regenerate these demos locally:
+
+```bash
+pnpm db:seed:demo
+pnpm demo:record
+```
+
 ## Architecture Overview
 
 ```mermaid
