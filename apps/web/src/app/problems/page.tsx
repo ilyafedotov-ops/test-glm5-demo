@@ -114,13 +114,6 @@ const statusConfig: Record<string, { color: string; icon: any; label: string }> 
   closed: { color: "bg-gray-500/10 text-gray-600", icon: XCircle, label: "Closed" },
 };
 
-const priorityConfig = {
-  critical: { gradient: "from-rose-500 to-pink-500", bg: "bg-rose-500/10", color: "text-rose-600 dark:text-rose-400", label: "Critical" },
-  high: { gradient: "from-orange-500 to-amber-500", bg: "bg-orange-500/10", color: "text-orange-600 dark:text-orange-400", label: "High" },
-  medium: { gradient: "from-amber-500 to-yellow-500", bg: "bg-amber-500/10", color: "text-amber-600 dark:text-amber-400", label: "Medium" },
-  low: { gradient: "from-emerald-500 to-teal-500", bg: "bg-emerald-500/10", color: "text-emerald-600 dark:text-emerald-400", label: "Low" },
-} as const;
-
 type ImpactUrgency = "critical" | "high" | "medium" | "low";
 
 const INITIAL_FORM = {
@@ -322,9 +315,8 @@ export default function ProblemsPage() {
             </div>
           ) : filteredProblems.length > 0 ? (
             <div className="space-y-3">
-              {filteredProblems.map((problem, index) => {
+              {filteredProblems.map((problem) => {
                 const statusStyle = statusConfig[problem.status] || statusConfig["new"];
-                const priorityStyle = priorityConfig[problem.priority as keyof typeof priorityConfig] || priorityConfig["medium"];
                 const StatusIcon = statusStyle.icon;
 
                 return (

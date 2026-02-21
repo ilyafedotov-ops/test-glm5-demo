@@ -538,7 +538,7 @@ export default function PolicyDetailPage() {
             <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
             <p className="text-lg font-medium">Policy not found</p>
             <p className="text-muted-foreground mt-1">
-              The policy you're looking for doesn't exist or has been deleted.
+              The policy you&apos;re looking for doesn&apos;t exist or has been deleted.
             </p>
             <Button variant="gradient" className="mt-6" onClick={() => router.push("/compliance")}>
               <ArrowLeft className="h-4 w-4" />

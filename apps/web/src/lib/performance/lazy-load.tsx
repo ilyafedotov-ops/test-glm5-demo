@@ -1,7 +1,7 @@
 "use client";
 
 import NextDynamic from "next/dynamic";
-import { ComponentType, LazyExoticComponent, Suspense, createElement } from "react";
+import { ComponentType, createElement } from "react";
 
 /**
  * Lazy loading utilities for code splitting and performance optimization

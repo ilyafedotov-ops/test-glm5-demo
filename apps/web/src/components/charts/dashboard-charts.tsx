@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React from "react";
 import { clsx } from "clsx";
 import {
-  LineChart,
   Line,
   AreaChart,
   Area,
@@ -27,18 +26,11 @@ import {
   ReferenceLine,
   ComposedChart,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
-import { Button } from "@nexusops/ui";
+import { Card, CardContent } from "@nexusops/ui";
 import {
-  Download,
-  Maximize2,
-  RefreshCw,
   TrendingUp,
   TrendingDown,
   Minus,
-  Filter,
-  Clock,
-  Calendar,
 } from "lucide-react";
 
 // Types
@@ -173,13 +165,11 @@ export function TimeSeriesChart({
   className,
   loading,
   onCrossFilter,
-  crossFilterValue,
+  crossFilterValue: _crossFilterValue,
   stacked = false,
   showBrush = false,
   referenceLines = [],
 }: LineAreaChartProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
   if (loading) return <ChartSkeleton height={height} />;
 
   return (
@@ -345,7 +335,7 @@ export function BarChartComponent({
 // Pie/Donut Chart
 export function PieChartComponent({
   data,
-  series,
+  series: _series,
   height = 300,
   showTooltip = true,
   animated = true,

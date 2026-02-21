@@ -8,24 +8,6 @@ import {
   Command,
   ArrowRight,
   Clock,
-  FileText,
-  Settings,
-  Users,
-  Shield,
-  AlertTriangle,
-  CheckSquare,
-  GitBranch,
-  BarChart3,
-  Home,
-  Plus,
-  Download,
-  LogOut,
-  HelpCircle,
-  Moon,
-  Sun,
-  Layers,
-  Star,
-  Trash2,
 } from "lucide-react";
 
 // Types
@@ -89,28 +71,6 @@ function fuzzyMatch(text: string, query: string): { score: number; matches: numb
 
   return { score, matches };
 }
-
-// Icon map for rendering
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  home: Home,
-  file: FileText,
-  settings: Settings,
-  users: Users,
-  shield: Shield,
-  alert: AlertTriangle,
-  tasks: CheckSquare,
-  workflow: GitBranch,
-  chart: BarChart3,
-  plus: Plus,
-  download: Download,
-  logout: LogOut,
-  help: HelpCircle,
-  moon: Moon,
-  sun: Sun,
-  layers: Layers,
-  star: Star,
-  trash: Trash2,
-};
 
 export function CommandPalette({
   commands,
@@ -337,7 +297,7 @@ export function CommandPalette({
                       {group.group.label}
                     </div>
                   )}
-                  {group.commands.map((cmd, cmdIndex) => {
+                  {group.commands.map((cmd) => {
                     const Icon = cmd.icon;
                     const globalIndex = flatCommands.indexOf(cmd);
                     const isSelected = globalIndex === selectedIndex;

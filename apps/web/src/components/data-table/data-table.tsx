@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback, useState, useRef } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,28 +18,18 @@ import {
   ExpandedState,
   GroupingState,
   Header,
-  HeaderGroup,
   Row,
-  Cell,
-  AccessorKeyColumnDef,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ChevronDown,
   ChevronRight,
-  ChevronUp,
-  ChevronsUpDown,
-  GripVertical,
-  Settings2,
   Columns,
   Search,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Filter,
-  MoreHorizontal,
-  Check,
-  X,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -135,7 +125,6 @@ export function DataTable<TData>({
   className,
   stickyHeader = true,
   showColumnToggle = true,
-  showSettings = true,
 }: DataTableProps<TData>) {
   // State
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -201,7 +190,6 @@ export function DataTable<TData>({
   });
 
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const totalSize = rowVirtualizer.getTotalSize();
 
   // Notify parent of selection changes
   React.useEffect(() => {
@@ -210,11 +198,6 @@ export function DataTable<TData>({
       onSelectionChange(selectedRows);
     }
   }, [rowSelection, onSelectionChange, table]);
-
-  // Get pinned columns
-  const leftPinnedColumns = table.getLeftHeaderGroups();
-  const centerColumns = table.getCenterHeaderGroups();
-  const rightPinnedColumns = table.getRightHeaderGroups();
 
   // Calculate total width for proper scrolling
   const totalWidth = useMemo(() => {
@@ -281,10 +264,8 @@ export function DataTable<TData>({
 
   // Render row
   const renderRow = (row: Row<TData>, virtualRow?: { index: number; start: number }) => {
-    const isGrouped = row.getIsGrouped();
     const isExpanded = row.getIsExpanded();
     const isSelected = row.getIsSelected();
-    const canExpand = row.getCanExpand();
 
     return (
       <React.Fragment key={row.id}>

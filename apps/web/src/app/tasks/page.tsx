@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
+import { Card, CardContent } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
 import {
   CheckSquare, Plus, Search, Calendar, RefreshCw,

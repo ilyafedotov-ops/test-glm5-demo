@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const { isOpen: commandPaletteOpen, close: closeCommandPalette, toggle: toggleCommandPalette, recentCommands, handleRecentChange } = useCommandPalette();
+  const { isOpen: commandPaletteOpen, close: closeCommandPalette, recentCommands, handleRecentChange } = useCommandPalette();
 
   const commandPaletteCommands: CommandAction[] = [
     { id: "create-incident", label: "Create Incident", description: "Log a new incident", icon: AlertTriangle, category: "create", keywords: ["incident", "new"], action: () => router.push("/incidents?create=1") },

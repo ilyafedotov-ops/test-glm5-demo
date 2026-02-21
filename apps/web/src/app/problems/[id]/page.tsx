@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
@@ -20,7 +19,6 @@ import {
 import { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { TicketNumberBadge } from "@/components/ui/ticket-badge";
 import { PriorityBadge, ImpactUrgencyBadge } from "@/components/ui/priority-matrix";
 

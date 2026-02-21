@@ -66,7 +66,7 @@ export function PriorityMatrixSelector({
     onPriorityChange?.(priority);
   }, [impact, urgency, onPriorityChange]);
 
-  const buttonClass = (level: string, currentValue: string, type: "impact" | "urgency") => {
+  const buttonClass = (level: string, currentValue: string) => {
     const isSelected = level === currentValue;
     const baseClasses = "px-4 py-2 rounded-lg text-sm font-medium transition-all border";
     
@@ -97,7 +97,7 @@ export function PriorityMatrixSelector({
               type="button"
               disabled={disabled}
               onClick={() => onImpactChange?.(level)}
-              className={buttonClass(level, impact, "impact")}
+              className={buttonClass(level, impact)}
             >
               <span className="capitalize">{level}</span>
             </button>
@@ -118,7 +118,7 @@ export function PriorityMatrixSelector({
               type="button"
               disabled={disabled}
               onClick={() => onUrgencyChange?.(level)}
-              className={buttonClass(level, urgency, "urgency")}
+              className={buttonClass(level, urgency)}
             >
               <span className="capitalize">{level}</span>
             </button>

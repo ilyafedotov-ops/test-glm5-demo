@@ -802,7 +802,7 @@ export default function IncidentsPage() {
                 try {
                   await exportIncidentsCSV(token!, statusFilter || undefined);
                   addToast({ title: "Export complete", description: "Incidents downloaded as CSV", type: "success" });
-                } catch (err) {
+                } catch {
                   addToast({ title: "Export failed", description: "Could not export incidents", type: "error" });
                 }
               }}

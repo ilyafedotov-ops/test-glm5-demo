@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useRef, useEffect, createContext, useContext } from "react";
+import React, { useState, useCallback, useMemo, createContext, useContext } from "react";
 import { clsx } from "clsx";
 import {
   Check,
@@ -8,11 +8,9 @@ import {
   ChevronRight,
   Loader2,
   Save,
-  X,
   AlertCircle,
   CheckCircle2,
   Circle,
-  Lock,
 } from "lucide-react";
 import { Button } from "@nexusops/ui";
 

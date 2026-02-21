@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
-import { AlertTriangle, CheckCircle, Clock, TrendingUp, AlertCircle, BarChart3, ArrowRight } from "lucide-react";
+import { AlertTriangle, CheckCircle, AlertCircle, BarChart3 } from "lucide-react";
 import { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { Badge } from "@/components/ui/badge";

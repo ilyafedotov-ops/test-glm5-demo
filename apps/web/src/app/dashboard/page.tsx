@@ -211,7 +211,7 @@ export default function DashboardPage() {
 
       {/* KPI Cards with drill-down links */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {kpiCards.map((card, index) => (
+        {kpiCards.map((card) => (
           <Link key={card.title} href={card.href}>
             <Card variant="glass" className="group relative overflow-hidden animate-slide-up hover:shadow-lg transition-all duration-300 cursor-pointer h-full">
               <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
@@ -488,7 +488,7 @@ export default function DashboardPage() {
             <div className="h-[220px] flex items-center justify-center text-muted-foreground">
               {data.trendData.length > 0 ? (
                 <div className="w-full space-y-2">
-                  {data.trendData.slice(-7).map((d, i) => (
+                  {data.trendData.slice(-7).map((d) => (
                     <div key={d.date} className="flex items-center gap-4 text-sm p-2 rounded-lg hover:bg-muted/50 transition-colors">
                       <span className="text-muted-foreground w-24">{d.date}</span>
                       <div className="flex-1 flex items-center gap-2">

@@ -454,7 +454,7 @@ export default function IncidentDetailPage() {
               <CardContent>
                 {incident.timeline && incident.timeline.length > 0 ? (
                   <div className="relative border-l-2 border-white/20 ml-4 space-y-4">
-                    {incident.timeline.map((event, index) => (
+                    {incident.timeline.map((event) => (
                       <div key={event.id} className="ml-4 relative">
                         <div className="absolute -left-6 top-1 h-3 w-3 rounded-full bg-gradient-to-br from-violet-500 to-purple-500" />
                         <div className="text-sm">
@@ -648,7 +648,7 @@ export default function IncidentDetailPage() {
             <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
             <p className="text-lg font-medium">Incident not found</p>
             <p className="text-muted-foreground mt-1">
-              The incident you're looking for doesn't exist or has been deleted.
+              The incident you&apos;re looking for doesn&apos;t exist or has been deleted.
             </p>
             <Button variant="gradient" className="mt-6" onClick={() => router.push("/incidents")}>
               <ArrowLeft className="h-4 w-4" />

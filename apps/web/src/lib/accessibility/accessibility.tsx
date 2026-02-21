@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from "react";
-import { createPortal } from "react-dom";
 import { clsx } from "clsx";
 
 /**
@@ -317,8 +316,8 @@ export function useRovingTabIndex(
  * Check if text meets WCAG contrast requirements
  */
 export function checkContrast(
-  foreground: string,
-  background: string
+  _foreground: string,
+  _background: string
 ): { ratio: number; passes: { aa: boolean; aaa: boolean } } {
   // Simplified contrast check - in production, use a proper color library
   // This is a placeholder implementation

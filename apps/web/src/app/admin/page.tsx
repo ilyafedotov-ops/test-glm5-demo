@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
 import {
   Settings, Users, Shield, Building, RefreshCw, Plus, Edit, Trash2,
-  Check, X, ChevronRight, Search, Save, AlertTriangle
+  Check, ChevronRight, Search, Save, AlertTriangle
 } from "lucide-react";
 import { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -1534,7 +1534,7 @@ export default function AdminPage() {
               <div>
                 <h4 className="font-semibold">Are you sure?</h4>
                 <p className="text-sm text-muted-foreground">
-                  This will permanently delete the role "{selectedRole.name}". This action cannot be undone.
+                  This will permanently delete the role &quot;{selectedRole.name}&quot;. This action cannot be undone.
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Affected users: <span className="font-medium text-foreground">{selectedRole.userCount || 0}</span>

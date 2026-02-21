@@ -715,7 +715,7 @@ export default function TaskDetailPage() {
             <CheckSquare className="h-12 w-12 text-amber-500 mx-auto mb-4" />
             <p className="text-lg font-medium">Task not found</p>
             <p className="text-muted-foreground mt-1">
-              The task you're looking for doesn't exist or has been deleted.
+              The task you&apos;re looking for doesn&apos;t exist or has been deleted.
             </p>
             <Button variant="gradient" className="mt-6" onClick={() => router.push("/tasks")}>
               <ArrowLeft className="h-4 w-4" />

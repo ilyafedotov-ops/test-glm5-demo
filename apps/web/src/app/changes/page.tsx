@@ -193,7 +193,7 @@ export default function ChangesPage() {
             </div>
           ) : filteredChanges.length > 0 ? (
             <div className="space-y-3">
-              {filteredChanges.map((change, index) => {
+              {filteredChanges.map((change) => {
                 const statusStyle = statusConfig[change.status] || statusConfig["draft"];
                 const typeStyle = typeConfig[change.type] || typeConfig["normal"];
                 const riskStyle = riskConfig[change.riskLevel] || riskConfig["medium"];

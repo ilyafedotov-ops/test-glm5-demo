@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState, createContext, useContext } from "react";
+import { useEffect, useCallback, useState, createContext, useContext } from "react";
 
 // Types
 export interface KeyboardShortcut {

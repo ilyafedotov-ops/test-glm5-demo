@@ -683,7 +683,7 @@ export default function WorkflowDetailPage() {
             <GitBranch className="h-12 w-12 text-amber-500 mx-auto mb-4" />
             <p className="text-lg font-medium">Workflow not found</p>
             <p className="text-muted-foreground mt-1">
-              The workflow you're looking for doesn't exist or has been deleted.
+              The workflow you&apos;re looking for doesn&apos;t exist or has been deleted.
             </p>
             <Button variant="gradient" className="mt-6" onClick={() => router.push("/workflows")}>
               <ArrowLeft className="h-4 w-4" />

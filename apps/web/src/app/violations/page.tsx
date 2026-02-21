@@ -6,20 +6,17 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
 import {
-  ShieldAlert, Plus, Filter, Search, Clock, User, Calendar, ChevronRight, RefreshCw,
+  ShieldAlert, Filter, Search, Clock, User, Calendar, ChevronRight, RefreshCw,
   AlertTriangle, CheckCircle2, XCircle, AlertOctagon, FileWarning, ExternalLink
 } from "lucide-react";
 import { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useToastStore } from "@/stores/toast-store";
-import { Dialog } from "@/components/ui/dialog";
 import { Sheet } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Violation {
   id: string;

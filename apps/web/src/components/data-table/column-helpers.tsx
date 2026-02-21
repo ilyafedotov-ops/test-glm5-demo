@@ -1,12 +1,9 @@
 import React from "react";
-import { ColumnDef, AccessorFn, DeepKeys } from "@tanstack/react-table";
+import { ColumnDef, DeepKeys } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import {
-  ArrowUp,
-  ArrowDown,
-  Minus,
   CheckCircle2,
   XCircle,
   Clock,
@@ -427,7 +424,7 @@ export function createColumnHelper<TData>() {
     /**
      * Create an actions column with dropdown menu
      */
-    actions<TContext>(
+    actions(
       render: (row: TData) => React.ReactNode,
       options?: { size?: number }
     ): ColumnDef<TData> {

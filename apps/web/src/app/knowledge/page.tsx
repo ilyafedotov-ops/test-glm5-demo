@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
+import { Card, CardContent } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
-import { BookOpen, Search, Plus, FileText, Lightbulb, Wrench, HelpCircle, ThumbsUp, Eye, Calendar } from "lucide-react";
+import { BookOpen, Search, Plus, FileText, Lightbulb, Wrench, ThumbsUp, Eye, Calendar } from "lucide-react";
 import { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { Badge } from "@/components/ui/badge";

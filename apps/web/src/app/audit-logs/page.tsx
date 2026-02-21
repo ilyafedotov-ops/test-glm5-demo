@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@nexusops/ui";
 import { Button } from "@nexusops/ui";
@@ -277,8 +277,6 @@ export default function AuditLogsPage() {
 
   const complianceEvents = eventCounts.compliance;
   const transitionEvents = eventCounts.transition;
-  const accessEvents = eventCounts.access;
-
   const handleExport = async () => {
     const searchParams = new URLSearchParams();
     if (filterAction) searchParams.set("action", filterAction);

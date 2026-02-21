@@ -63,17 +63,6 @@ export interface UseDataTableReturn extends DataTableState {
   selectedCount: number;
 }
 
-const DEFAULT_STATE: DataTableState = {
-  sorting: [],
-  columnFilters: [],
-  columnVisibility: {},
-  rowSelection: {},
-  grouping: [],
-  expanded: {},
-  pagination: { pageIndex: 0, pageSize: 20 },
-  globalFilter: "",
-};
-
 export function useDataTable(options: UseDataTableOptions = {}): UseDataTableReturn {
   const {
     initialPageSize = 20,
