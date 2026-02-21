@@ -43,3 +43,4 @@ apps/api/prisma/*.db-journal
 
 # Misc
 *.pem
+.playwright-cli/

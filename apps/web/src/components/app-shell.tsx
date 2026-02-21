@@ -24,7 +24,7 @@ import {
   Home,
   Plus,
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -100,41 +100,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, token, isAuthenticated, logout } = useAuthStore();
   const queryClient = useQueryClient();
 
-  // Get initial expanded group from localStorage or active path
-  const getInitialExpandedGroup = useCallback((): string | null => {
-    if (typeof window === "undefined") return null;
-    const stored = localStorage.getItem(NAV_EXPANDED_KEY);
-    if (stored) return stored;
-    return findGroupForPath(pathname);
-  }, [pathname]);
+  // Keep multiple groups expanded and persist the user's preference.
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-
-  // Initialize expanded group on mount
+  // Initialize expanded groups from localStorage on mount.
   useEffect(() => {
-    setExpandedGroup(getInitialExpandedGroup());
-  }, [getInitialExpandedGroup]);
+    if (typeof window === "undefined") return;
+    try {
+      const stored = localStorage.getItem(NAV_EXPANDED_KEY);
+      if (!stored) return;
 
-  // Auto-expand group when route changes.
-  // Do not depend on expandedGroup here; otherwise manual toggles get overwritten immediately.
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        setExpandedGroups(parsed.filter((id): id is string => typeof id === "string"));
+      }
+    } catch {
+      // Ignore malformed localStorage values.
+    }
+  }, []);
+
+  // Ensure current route group is expanded without collapsing other user-expanded groups.
   useEffect(() => {
     const activeGroup = findGroupForPath(pathname);
-    if (activeGroup) {
-      setExpandedGroup(activeGroup);
-      localStorage.setItem(NAV_EXPANDED_KEY, activeGroup);
-    }
+    if (!activeGroup) return;
+
+    setExpandedGroups((prev) => (prev.includes(activeGroup) ? prev : [...prev, activeGroup]));
   }, [pathname]);
 
-  const toggleGroup = (groupId: string) => {
-    const newExpanded = expandedGroup === groupId ? null : groupId;
-    setExpandedGroup(newExpanded);
-    if (typeof window !== "undefined") {
-      if (newExpanded) {
-        localStorage.setItem(NAV_EXPANDED_KEY, newExpanded);
-      } else {
-        localStorage.removeItem(NAV_EXPANDED_KEY);
-      }
+  // Persist expanded groups whenever they change.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (expandedGroups.length > 0) {
+      localStorage.setItem(NAV_EXPANDED_KEY, JSON.stringify(expandedGroups));
+    } else {
+      localStorage.removeItem(NAV_EXPANDED_KEY);
     }
+  }, [expandedGroups]);
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) =>
+      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
+    );
   };
 
   const { data: unreadCount = 0 } = useQuery({
@@ -503,7 +509,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 }
                 return true;
               }).map((group) => {
-                const isExpanded = expandedGroup === group.id;
+                const isExpanded = expandedGroups.includes(group.id);
                 const hasActiveItem = group.items.some(
                   (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
                 );
