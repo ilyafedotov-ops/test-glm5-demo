@@ -31,6 +31,111 @@ NexusOps provides unified operations workflows including:
 - Audit logs and activity history
 - Admin governance and access controls
 
+## What NexusOps Control Center Does
+
+NexusOps Control Center is designed to run day-to-day IT service operations and governance from one workspace. It combines operational ticketing, risk/compliance controls, and audit visibility so teams can move quickly without losing traceability.
+
+Key outcomes the platform targets:
+- Faster incident response and clearer ownership
+- Better root-cause management through problem workflows
+- Safer change execution with approval and governance gates
+- Centralized evidence for compliance and audits
+- Unified operational context across teams, records, and timelines
+
+## Functions and Features
+
+### Core ITIL Operations
+
+- Incidents:
+  - Create, update, filter, assign, transition, and merge duplicate incidents
+  - Track lifecycle from `new` to `resolved`/`closed` with workflow-aware transitions
+  - Add comments and export incident datasets
+- Problems:
+  - Create and manage problem records with linked incidents
+  - Track investigation stages and convert records to known errors
+  - Associate remediation tasks and accountability
+- Changes:
+  - Create and manage change requests across change types
+  - Support approval-oriented flow for normal/emergency change execution
+  - Track implementation progress and post-change status updates
+- Tasks:
+  - Create, assign, start, complete, reopen, cancel, and delete tasks
+  - Use task stats and state transitions for operational throughput visibility
+- Workflows:
+  - Create workflows directly or from templates
+  - Advance, cancel, rollback, and analyze workflow exceptions
+
+### Service Delivery and Knowledge
+
+- Service Catalog:
+  - Manage service catalog items
+  - Submit and process service requests with approval/fulfillment steps
+- Knowledge Base:
+  - Create, version, publish, archive, and search knowledge articles
+  - Track helpfulness feedback and support version reverts
+- Notifications:
+  - In-app notifications, unread tracking, and read-all actions
+  - Notification preferences for user-level delivery controls
+
+### Governance, Risk, and Compliance
+
+- Policies and Exceptions:
+  - Define policies and manage policy exception requests/decisions
+- Violations:
+  - Create, assign, acknowledge, remediate, and classify violations
+  - Use violation analytics to prioritize remediation effort
+- CMDB (Configuration Items):
+  - Manage configuration items and item relationships
+  - Link operational activity to managed assets/services
+- SLA Management:
+  - SLA policies and dashboard views for response/resolution tracking
+  - Priority-aware monitoring of service commitments
+- Audit and Activities:
+  - Immutable-style operational audit logging for actions and transitions
+  - Unified activity stream for cross-domain traceability
+- Admin Governance:
+  - Role and permission management (RBAC)
+  - Governance structures for elevated/admin process control
+
+### Platform and Engineering Features
+
+- Authentication and Authorization:
+  - JWT-based auth with guard-driven permission enforcement
+  - Resource/action-style RBAC controls
+- API and Contracts:
+  - REST API with DTO validation and OpenAPI/Swagger documentation
+  - Shared contract package to align backend/frontend types
+- Reliability and Observability:
+  - Structured logging with correlation IDs
+  - Monitoring endpoints for health and metrics
+  - Redis-backed queue processors for asynchronous workloads
+- Frontend UX Foundation:
+  - Consistent AppShell layout with left-side navigation
+  - Command palette for fast record creation and route navigation
+  - Reusable tables, record pickers, and modal/sheet interaction patterns
+
+## Typical Operational Flows
+
+- Incident to Problem to Change:
+  - Triage incident, investigate pattern, open problem, then execute a governed change.
+- Request to Fulfillment:
+  - Submit service request, route through approval, fulfill, and close with traceable history.
+- Violation to Remediation:
+  - Register violation, assign owner, track remediation, and retain audit evidence.
+- Knowledge-Centered Operations:
+  - Capture resolution knowledge, publish article versions, and reuse proven runbooks.
+
+## Who Uses NexusOps
+
+- Service Desk and Operations teams:
+  - Manage incidents, requests, and task execution.
+- SRE/Platform and Engineering teams:
+  - Coordinate changes, root-cause work, and reliability improvements.
+- Security, Risk, and Compliance stakeholders:
+  - Track violations, policy exceptions, and audit-ready evidence.
+- IT Leadership and Governance boards:
+  - Monitor SLAs, operational health, and control effectiveness.
+
 ## Architecture Overview
 
 ```mermaid
