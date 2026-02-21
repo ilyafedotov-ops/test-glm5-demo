@@ -115,14 +115,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setExpandedGroup(getInitialExpandedGroup());
   }, [getInitialExpandedGroup]);
 
-  // Auto-expand group when path changes
+  // Auto-expand group when route changes.
+  // Do not depend on expandedGroup here; otherwise manual toggles get overwritten immediately.
   useEffect(() => {
     const activeGroup = findGroupForPath(pathname);
-    if (activeGroup && activeGroup !== expandedGroup) {
+    if (activeGroup) {
       setExpandedGroup(activeGroup);
       localStorage.setItem(NAV_EXPANDED_KEY, activeGroup);
     }
-  }, [pathname, expandedGroup]);
+  }, [pathname]);
 
   const toggleGroup = (groupId: string) => {
     const newExpanded = expandedGroup === groupId ? null : groupId;
@@ -299,21 +300,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }, 1000);
   };
 
+  // Helper to get item label for breadcrumbs
+  function getItemLabel(href: string): string {
+    for (const group of NAV_GROUPS) {
+      const item = group.items.find((i) => i.href === href);
+      if (item) return item.label;
+    }
+    return href.split("/").pop() || href;
+  }
+
   const pathSegments = pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => {
     const href = "/" + pathSegments.slice(0, index + 1).join("/");
     const label = getItemLabel(href) || segment.charAt(0).toUpperCase() + segment.slice(1);
     return { href, label };
   });
-
-  // Helper to get item label for breadcrumbs
-  const getItemLabel = (href: string): string => {
-    for (const group of NAV_GROUPS) {
-      const item = group.items.find((i) => i.href === href);
-      if (item) return item.label;
-    }
-    return href.split("/").pop() || href;
-  };
 
   return (
     <div className="min-h-screen bg-background">
