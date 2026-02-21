@@ -72,12 +72,7 @@ export function FocusTrap({
   );
 
   return (
-    <div
-      ref={containerRef}
-      onKeyDown={handleKeyDown}
-      className={className}
-      role="presentation"
-    >
+    <div ref={containerRef} onKeyDown={handleKeyDown} className={className} role="presentation">
       {children}
     </div>
   );
@@ -86,17 +81,15 @@ export function FocusTrap({
 /**
  * Get all focusable elements within a container
  */
-export function getFocusableElements(
-  container: HTMLElement | null
-): HTMLElement[] {
+export function getFocusableElements(container: HTMLElement | null): HTMLElement[] {
   if (!container) return [];
 
   const selector = [
-    'a[href]:not([disabled])',
-    'button:not([disabled])',
-    'textarea:not([disabled])',
-    'input:not([disabled])',
-    'select:not([disabled])',
+    "a[href]:not([disabled])",
+    "button:not([disabled])",
+    "textarea:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
     '[tabindex]:not([tabindex="-1"])',
   ].join(", ");
 
@@ -125,10 +118,10 @@ export function useFocus<T extends HTMLElement = HTMLInputElement>() {
 /**
  * Skip to content link component
  */
-export function SkipToContent({ 
+export function SkipToContent({
   targetId = "main-content",
-  label = "Skip to main content"
-}: { 
+  label = "Skip to main content",
+}: {
   targetId?: string;
   label?: string;
 }) {
@@ -207,16 +200,8 @@ export function useAnnouncer() {
 /**
  * Screen reader only text wrapper
  */
-export function VisuallyHidden({ 
-  children 
-}: { 
-  children: React.ReactNode;
-}) {
-  return (
-    <span className="sr-only">
-      {children}
-    </span>
-  );
+export function VisuallyHidden({ children }: { children: React.ReactNode }) {
+  return <span className="sr-only">{children}</span>;
 }
 
 // ============================================
@@ -374,10 +359,7 @@ export function AccessibleMotion({
 
   return (
     <div
-      className={clsx(
-        className,
-        prefersReducedMotion ? reducedMotionClassName : animateClassName
-      )}
+      className={clsx(className, prefersReducedMotion ? reducedMotionClassName : animateClassName)}
     >
       {children}
     </div>
@@ -426,21 +408,14 @@ export function AccessibleField({
       )}
       {React.cloneElement(children as React.ReactElement, {
         id,
-        "aria-describedby": [
-          description && descriptionId,
-          error && errorId,
-        ]
+        "aria-describedby": [description && descriptionId, error && errorId]
           .filter(Boolean)
           .join(" "),
         "aria-invalid": error ? "true" : undefined,
         "aria-required": required ? "true" : undefined,
       })}
       {error && (
-        <p
-          id={errorId}
-          role="alert"
-          className="text-sm text-rose-500"
-        >
+        <p id={errorId} role="alert" className="text-sm text-rose-500">
           {error}
         </p>
       )}
@@ -448,7 +423,7 @@ export function AccessibleField({
   );
 }
 
-export default {
+const accessibilityUtils = {
   FocusTrap,
   getFocusableElements,
   useFocus,
@@ -461,3 +436,5 @@ export default {
   AccessibleMotion,
   AccessibleField,
 };
+
+export default accessibilityUtils;

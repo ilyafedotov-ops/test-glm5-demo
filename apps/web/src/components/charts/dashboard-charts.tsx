@@ -27,11 +27,7 @@ import {
   ComposedChart,
 } from "recharts";
 import { Card, CardContent } from "@nexusops/ui";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 // Types
 export interface ChartDataPoint {
@@ -98,12 +94,7 @@ const COLORS = [
 ];
 
 // Custom tooltip component
-const CustomTooltip = ({
-  active,
-  payload,
-  label,
-  formatter,
-}: any) => {
+const CustomTooltip = ({ active, payload, label, formatter }: any) => {
   if (!active || !payload?.length) return null;
 
   return (
@@ -112,10 +103,7 @@ const CustomTooltip = ({
       <div className="space-y-1">
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2 text-sm">
-            <span
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: entry["color"] }}
-            />
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry["color"] }} />
             <span className="text-muted-foreground">{entry.name}:</span>
             <span className="font-medium">
               {formatter ? formatter(entry["value"]) : entry["value"]?.toLocaleString()}
@@ -133,10 +121,7 @@ const CustomLegend = ({ payload }: any) => {
     <div className="flex flex-wrap justify-center gap-4 mt-4">
       {payload?.map((entry: any, index: number) => (
         <div key={index} className="flex items-center gap-2 text-sm">
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: entry["color"] }}
-          />
+          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry["color"] }} />
           <span className="text-muted-foreground">{entry["value"]}</span>
         </div>
       ))}
@@ -146,10 +131,7 @@ const CustomLegend = ({ payload }: any) => {
 
 // Loading skeleton
 const ChartSkeleton = ({ height = 300 }: { height?: number }) => (
-  <div
-    className="w-full rounded-xl bg-muted/50 shimmer"
-    style={{ height }}
-  />
+  <div className="w-full rounded-xl bg-muted/50 shimmer" style={{ height }} />
 );
 
 // Line/Area Chart
@@ -183,27 +165,13 @@ export function TimeSeriesChart({
             }
           }}
         >
-          {showGrid && (
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-          )}
-          <XAxis
-            dataKey={xAxisKey}
-            tick={{ fontSize: 12 }}
-            stroke="rgba(255,255,255,0.3)"
-          />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            stroke="rgba(255,255,255,0.3)"
-          />
+          {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />}
+          <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} stroke="rgba(255,255,255,0.3)" />
+          <YAxis tick={{ fontSize: 12 }} stroke="rgba(255,255,255,0.3)" />
           {showTooltip && <Tooltip content={<CustomTooltip />} />}
           {showLegend && <Legend content={<CustomLegend />} />}
           {showBrush && (
-            <Brush
-              dataKey={xAxisKey}
-              height={30}
-              stroke="#8B5CF6"
-              fill="rgba(139, 92, 246, 0.1)"
-            />
+            <Brush dataKey={xAxisKey} height={30} stroke="#8B5CF6" fill="rgba(139, 92, 246, 0.1)" />
           )}
           {referenceLines.map((ref, i) => (
             <ReferenceLine
@@ -288,9 +256,7 @@ export function BarChartComponent({
             }
           }}
         >
-          {showGrid && (
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-          )}
+          {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />}
           {isVertical ? (
             <>
               <XAxis type="number" tick={{ fontSize: 12 }} stroke="rgba(255,255,255,0.3)" />
@@ -304,11 +270,7 @@ export function BarChartComponent({
             </>
           ) : (
             <>
-              <XAxis
-                dataKey={xAxisKey}
-                tick={{ fontSize: 12 }}
-                stroke="rgba(255,255,255,0.3)"
-              />
+              <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} stroke="rgba(255,255,255,0.3)" />
               <YAxis tick={{ fontSize: 12 }} stroke="rgba(255,255,255,0.3)" />
             </>
           )}
@@ -409,9 +371,7 @@ export function RadarChartComponent({
     <div className={clsx("relative", className)}>
       <ResponsiveContainer width="100%" height={height}>
         <RadarChart data={data}>
-          {showGrid && (
-            <PolarGrid stroke="rgba(255,255,255,0.1)" />
-          )}
+          {showGrid && <PolarGrid stroke="rgba(255,255,255,0.1)" />}
           <PolarAngleAxis
             dataKey={xAxisKey}
             tick={{ fontSize: 11 }}
@@ -474,13 +434,7 @@ export function StatCard({
 
   const colorClass = colorClasses[color] || colorClasses["violet"];
 
-  const TrendIcon = change
-    ? change > 0
-      ? TrendingUp
-      : change < 0
-      ? TrendingDown
-      : Minus
-    : null;
+  const TrendIcon = change ? (change > 0 ? TrendingUp : change < 0 ? TrendingDown : Minus) : null;
 
   return (
     <Card
@@ -492,8 +446,10 @@ export function StatCard({
       )}
       onClick={onClick}
     >
-      <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity" 
-           style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }} />
+      <div
+        className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }}
+      />
       <CardContent className="relative pt-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -505,14 +461,22 @@ export function StatCard({
                   <TrendIcon
                     className={clsx(
                       "h-4 w-4",
-                      change > 0 ? "text-emerald-500" : change < 0 ? "text-rose-500" : "text-muted-foreground"
+                      change > 0
+                        ? "text-emerald-500"
+                        : change < 0
+                          ? "text-rose-500"
+                          : "text-muted-foreground"
                     )}
                   />
                 )}
                 <span
                   className={clsx(
                     "text-sm font-medium",
-                    change > 0 ? "text-emerald-500" : change < 0 ? "text-rose-500" : "text-muted-foreground"
+                    change > 0
+                      ? "text-emerald-500"
+                      : change < 0
+                        ? "text-rose-500"
+                        : "text-muted-foreground"
                   )}
                 >
                   {change > 0 ? "+" : ""}
@@ -588,7 +552,7 @@ export function Sparkline({
   );
 }
 
-export default {
+const dashboardCharts = {
   TimeSeriesChart,
   BarChartComponent,
   PieChartComponent,
@@ -596,3 +560,5 @@ export default {
   StatCard,
   Sparkline,
 };
+
+export default dashboardCharts;

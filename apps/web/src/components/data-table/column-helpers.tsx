@@ -1,14 +1,10 @@
 import React from "react";
 import { ColumnDef, DeepKeys } from "@tanstack/react-table";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import {
-  CheckCircle2,
-  XCircle,
-  Clock,
-  AlertTriangle,
-} from "lucide-react";
+import { CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 
 /**
  * Column helper factory for creating typed column definitions
@@ -134,10 +130,7 @@ export function createColumnHelper<TData>() {
       header: string = "Priority",
       options?: { size?: number }
     ): ColumnDef<TData> {
-      const config: Record<
-        string,
-        { label: string; gradient: string }
-      > = {
+      const config: Record<string, { label: string; gradient: string }> = {
         critical: { label: "Critical", gradient: "from-rose-500 to-pink-500" },
         high: { label: "High", gradient: "from-orange-500 to-amber-500" },
         medium: { label: "Medium", gradient: "from-amber-500 to-yellow-500" },
@@ -205,7 +198,14 @@ export function createColumnHelper<TData>() {
             <div className="flex items-center gap-2">
               <Avatar className="h-7 w-7">
                 {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={name} />
+                  <Image
+                    src={user.avatarUrl}
+                    alt={name || user.email || "User avatar"}
+                    width={28}
+                    height={28}
+                    className="aspect-square h-full w-full object-cover"
+                    unoptimized
+                  />
                 ) : (
                   <AvatarFallback className="text-xs bg-gradient-to-br from-violet-500 to-purple-500 text-white">
                     {initials || "?"}
@@ -240,9 +240,7 @@ export function createColumnHelper<TData>() {
           if (value === null || value === undefined) {
             return <span className="text-muted-foreground">—</span>;
           }
-          const formatted = options?.format
-            ? options.format(value)
-            : value.toLocaleString();
+          const formatted = options?.format ? options.format(value) : value.toLocaleString();
           return (
             <span className={options?.align === "right" ? "text-right block" : ""}>
               {formatted}
@@ -412,8 +410,8 @@ export function createColumnHelper<TData>() {
                 {value.status === "completed"
                   ? "Done"
                   : value.minutesRemaining !== undefined
-                  ? formatTime(value.minutesRemaining)
-                  : value.status?.replace("_", " ")}
+                    ? formatTime(value.minutesRemaining)
+                    : value.status?.replace("_", " ")}
               </span>
             </div>
           );

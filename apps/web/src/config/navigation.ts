@@ -10,7 +10,10 @@ import {
   FileText,
   Gauge,
   GitBranch,
+  HelpCircle,
+  Info,
   LayoutDashboard,
+  LifeBuoy,
   Settings,
   Shield,
   ShieldCheck,
@@ -23,7 +26,7 @@ export interface AppNavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  section?: "main" | "admin";
+  section?: "main" | "admin" | "help";
 }
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
@@ -43,6 +46,9 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: "/reports", label: "Reports", icon: FileText, section: "main" },
   { href: "/audit-logs", label: "Audit Logs", icon: ClipboardList, section: "main" },
   { href: "/notifications", label: "Notifications", icon: Bell, section: "main" },
+  { href: "/help", label: "Help", icon: HelpCircle, section: "help" },
+  { href: "/support", label: "Support", icon: LifeBuoy, section: "help" },
+  { href: "/about", label: "About", icon: Info, section: "help" },
   { href: "/admin", label: "Admin", icon: ShieldCheck, section: "admin" },
   { href: "/settings", label: "Settings", icon: Settings, section: "admin" },
 ];

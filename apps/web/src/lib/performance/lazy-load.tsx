@@ -17,18 +17,18 @@ function LoadingSpinner({ className = "" }: { className?: string }) {
 }
 
 // Skeleton loader
-export function SkeletonLoader({ 
-  className = "", 
-  count = 1 
-}: { 
-  className?: string; 
+export function SkeletonLoader({
+  className = "",
+  count = 1,
+}: {
+  className?: string;
   count?: number;
 }) {
   return (
     <div className={`space-y-3 ${className}`}>
       {Array.from({ length: count }).map((_, i) => (
-        <div 
-          key={i} 
+        <div
+          key={i}
           className="h-4 bg-muted/50 rounded animate-pulse"
           style={{ width: `${Math.random() * 40 + 60}%` }}
         />
@@ -49,10 +49,8 @@ export function lazyLoad<P extends object>(
 ) {
   const LazyComponent = NextDynamic(() => importFn(), {
     ssr: options.ssr ?? false,
-    loading: () => 
-      options.loading 
-        ? createElement(options.loading) 
-        : createElement(LoadingSpinner),
+    loading: () =>
+      options.loading ? createElement(options.loading) : createElement(LoadingSpinner),
   });
 
   return LazyComponent;
@@ -61,9 +59,7 @@ export function lazyLoad<P extends object>(
 /**
  * Preloads a component for faster navigation
  */
-export function preloadComponent(
-  importFn: () => Promise<unknown>
-): void {
+export function preloadComponent(importFn: () => Promise<unknown>): void {
   importFn().catch(() => {
     // Silently fail preload
   });
@@ -72,9 +68,7 @@ export function preloadComponent(
 /**
  * Prefetches data for a route
  */
-export function prefetchRoute(
-  route: string
-): void {
+export function prefetchRoute(route: string): void {
   if (typeof window !== "undefined") {
     // Use Next.js prefetch mechanism
     const link = document.createElement("link");
@@ -97,7 +91,7 @@ export function getOptimizedImageUrl(
   } = {}
 ): string {
   const params = new URLSearchParams();
-  
+
   if (options.width) params.set("w", options.width.toString());
   if (options.height) params.set("h", options.height.toString());
   if (options.quality) params.set("q", options.quality.toString());
@@ -155,7 +149,8 @@ export function throttle<T extends (...args: any[]) => any>(
 export const requestIdleCallback =
   typeof window !== "undefined" && "requestIdleCallback" in window
     ? window.requestIdleCallback
-    : (cb: IdleRequestCallback) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 1);
+    : (cb: IdleRequestCallback) =>
+        setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 1);
 
 /**
  * Run task during idle time
@@ -200,7 +195,9 @@ export function measureWebVitals(): {
       vitals.cls = clsValue;
     });
     observer.observe({ type: "layout-shift", buffered: true });
-  } catch {}
+  } catch {
+    // Browser does not support this metric observer.
+  }
 
   // LCP
   try {
@@ -210,7 +207,9 @@ export function measureWebVitals(): {
       vitals.lcp = lastEntry.startTime;
     });
     observer.observe({ type: "largest-contentful-paint", buffered: true });
-  } catch {}
+  } catch {
+    // Browser does not support this metric observer.
+  }
 
   // FCP
   try {
@@ -218,7 +217,9 @@ export function measureWebVitals(): {
     if (entries.length > 0) {
       vitals.fcp = (entries[0] as PerformanceEntry).startTime;
     }
-  } catch {}
+  } catch {
+    // Browser does not support this performance entry lookup.
+  }
 
   // TTFB
   try {
@@ -226,7 +227,9 @@ export function measureWebVitals(): {
     if (entries.length > 0 && "responseStart" in entries[0]) {
       vitals.ttfb = (entries[0] as PerformanceNavigationTiming).responseStart;
     }
-  } catch {}
+  } catch {
+    // Browser does not support this navigation timing lookup.
+  }
 
   return vitals;
 }
@@ -250,7 +253,7 @@ export function getMemoryUsage(): {
   return null;
 }
 
-export default {
+const lazyLoadUtils = {
   lazyLoad,
   preloadComponent,
   prefetchRoute,
@@ -261,3 +264,5 @@ export default {
   measureWebVitals,
   getMemoryUsage,
 };
+
+export default lazyLoadUtils;

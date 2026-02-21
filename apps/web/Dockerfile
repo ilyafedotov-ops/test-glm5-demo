@@ -7,6 +7,7 @@ WORKDIR /app
 
 # Copy workspace config
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY .eslintrc.cjs ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/ui/package.json ./packages/ui/

@@ -3,12 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { clsx } from "clsx";
-import {
-  Search,
-  Command,
-  ArrowRight,
-  Clock,
-} from "lucide-react";
+import { Search, Command, ArrowRight, Clock } from "lucide-react";
 
 // Types
 export interface CommandAction {
@@ -51,7 +46,7 @@ function fuzzyMatch(text: string, query: string): { score: number; matches: numb
   if (textLower === queryLower) return { score: 100, matches: [] };
 
   let score = 0;
-  let matches: number[] = [];
+  const matches: number[] = [];
   let queryIndex = 0;
 
   for (let i = 0; i < text.length && queryIndex < query.length; i++) {
@@ -103,7 +98,9 @@ export function CommandPalette({
     const results = commands
       .map((cmd) => {
         const labelMatch = fuzzyMatch(cmd.label, query);
-        const descMatch = cmd.description ? fuzzyMatch(cmd.description, query) : { score: 0, matches: [] };
+        const descMatch = cmd.description
+          ? fuzzyMatch(cmd.description, query)
+          : { score: 0, matches: [] };
         const keywordMatch = cmd.keywords
           ? Math.max(...cmd.keywords.map((k) => fuzzyMatch(k, query).score))
           : 0;
@@ -249,10 +246,7 @@ export function CommandPalette({
   return createPortal(
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-full max-w-xl">
@@ -345,9 +339,7 @@ export function CommandPalette({
                             ))}
                           </div>
                         )}
-                        {isSelected && (
-                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                        )}
+                        {isSelected && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
                       </button>
                     );
                   })}

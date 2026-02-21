@@ -54,7 +54,15 @@ async function fetchUnreadCount(token: string): Promise<number> {
 }
 
 async function fetchNotifications(token: string): Promise<{
-  data: Array<{ id: string; type: string; title: string; message: string; actionUrl?: string; isRead: boolean; createdAt: string }>;
+  data: Array<{
+    id: string;
+    type: string;
+    title: string;
+    message: string;
+    actionUrl?: string;
+    isRead: boolean;
+    createdAt: string;
+  }>;
   unreadCount: number;
 }> {
   const res = await fetch(`${API_URL}/notifications`, {
@@ -111,20 +119,107 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const { isOpen: commandPaletteOpen, close: closeCommandPalette, recentCommands, handleRecentChange } = useCommandPalette();
+  const {
+    isOpen: commandPaletteOpen,
+    close: closeCommandPalette,
+    recentCommands,
+    handleRecentChange,
+  } = useCommandPalette();
 
   const commandPaletteCommands: CommandAction[] = [
-    { id: "create-incident", label: "Create Incident", description: "Log a new incident", icon: AlertTriangle, category: "create", keywords: ["incident", "new"], action: () => router.push("/incidents?create=1") },
-    { id: "create-problem", label: "Create Problem", description: "Create a new problem record", icon: Wrench, category: "create", keywords: ["problem", "root cause"], action: () => router.push("/problems?create=1") },
-    { id: "create-change", label: "Create Change", description: "Submit a change request", icon: GitBranch, category: "create", keywords: ["change", "request"], action: () => router.push("/changes/new") },
-    { id: "create-task", label: "Create Task", description: "Create a new task", icon: CheckSquare, category: "create", keywords: ["task", "todo"], action: () => router.push("/tasks?create=1") },
-    { id: "nav-dashboard", label: "Go to Dashboard", description: "Open dashboard", icon: Home, category: "navigation", action: () => router.push("/dashboard") },
-    { id: "nav-incidents", label: "Go to Incidents", description: "Open incidents", icon: AlertTriangle, category: "navigation", action: () => router.push("/incidents") },
-    { id: "nav-problems", label: "Go to Problems", description: "Open problems", icon: Wrench, category: "navigation", action: () => router.push("/problems") },
-    { id: "nav-changes", label: "Go to Changes", description: "Open changes", icon: GitBranch, category: "navigation", action: () => router.push("/changes") },
-    { id: "nav-tasks", label: "Go to Tasks", description: "Open tasks", icon: CheckSquare, category: "navigation", action: () => router.push("/tasks") },
-    { id: "nav-reports", label: "Go to Reports", description: "Open reports", icon: BarChart3, category: "navigation", action: () => router.push("/reports") },
-    { id: "nav-knowledge", label: "Search Knowledge", description: "Open knowledge base", icon: FileText, category: "navigation", keywords: ["knowledge", "search"], action: () => router.push("/knowledge") },
+    {
+      id: "create-incident",
+      label: "Create Incident",
+      description: "Log a new incident",
+      icon: AlertTriangle,
+      category: "create",
+      keywords: ["incident", "new"],
+      action: () => router.push("/incidents?create=1"),
+    },
+    {
+      id: "create-problem",
+      label: "Create Problem",
+      description: "Create a new problem record",
+      icon: Wrench,
+      category: "create",
+      keywords: ["problem", "root cause"],
+      action: () => router.push("/problems?create=1"),
+    },
+    {
+      id: "create-change",
+      label: "Create Change",
+      description: "Submit a change request",
+      icon: GitBranch,
+      category: "create",
+      keywords: ["change", "request"],
+      action: () => router.push("/changes/new"),
+    },
+    {
+      id: "create-task",
+      label: "Create Task",
+      description: "Create a new task",
+      icon: CheckSquare,
+      category: "create",
+      keywords: ["task", "todo"],
+      action: () => router.push("/tasks?create=1"),
+    },
+    {
+      id: "nav-dashboard",
+      label: "Go to Dashboard",
+      description: "Open dashboard",
+      icon: Home,
+      category: "navigation",
+      action: () => router.push("/dashboard"),
+    },
+    {
+      id: "nav-incidents",
+      label: "Go to Incidents",
+      description: "Open incidents",
+      icon: AlertTriangle,
+      category: "navigation",
+      action: () => router.push("/incidents"),
+    },
+    {
+      id: "nav-problems",
+      label: "Go to Problems",
+      description: "Open problems",
+      icon: Wrench,
+      category: "navigation",
+      action: () => router.push("/problems"),
+    },
+    {
+      id: "nav-changes",
+      label: "Go to Changes",
+      description: "Open changes",
+      icon: GitBranch,
+      category: "navigation",
+      action: () => router.push("/changes"),
+    },
+    {
+      id: "nav-tasks",
+      label: "Go to Tasks",
+      description: "Open tasks",
+      icon: CheckSquare,
+      category: "navigation",
+      action: () => router.push("/tasks"),
+    },
+    {
+      id: "nav-reports",
+      label: "Go to Reports",
+      description: "Open reports",
+      icon: BarChart3,
+      category: "navigation",
+      action: () => router.push("/reports"),
+    },
+    {
+      id: "nav-knowledge",
+      label: "Search Knowledge",
+      description: "Open knowledge base",
+      icon: FileText,
+      category: "navigation",
+      keywords: ["knowledge", "search"],
+      action: () => router.push("/knowledge"),
+    },
   ];
 
   useEffect(() => {
@@ -141,9 +236,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  const userInitials = user
-    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-    : "JD";
+  const userInitials = user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : "JD";
 
   const handleLogout = () => {
     logout();
@@ -177,14 +270,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return { href, label };
   });
 
-  const mainNavItems = APP_NAV_ITEMS.filter((item) => item.section !== "admin");
+  const mainNavItems = APP_NAV_ITEMS.filter((item) => item.section === "main");
+  const helpNavItems = APP_NAV_ITEMS.filter((item) => item.section === "help");
   const isAdminUser =
     !!user &&
     (user.roles?.some((role) => role.name === "admin") ||
       user.permissions?.some((permission) => permission.name === "admin:all"));
-  const adminNavItems = isAdminUser
-    ? APP_NAV_ITEMS.filter((item) => item.section === "admin")
-    : [];
+  const adminNavItems = isAdminUser ? APP_NAV_ITEMS.filter((item) => item.section === "admin") : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -259,7 +351,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     >
                       <div className="flex flex-col items-start gap-0.5 py-1">
                         <span className="font-medium text-sm truncate w-full">{n.title}</span>
-                        <span className="text-xs text-muted-foreground truncate w-full">{n.message}</span>
+                        <span className="text-xs text-muted-foreground truncate w-full">
+                          {n.message}
+                        </span>
                         <span className="text-[10px] text-muted-foreground/80">
                           {new Date(n.createdAt).toLocaleString()}
                         </span>
@@ -282,7 +376,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {unreadCount > 0 ? `${unreadCount} unread notification(s)` : "No new notifications"}
               </div>
             )}
-            <DropdownMenuItem onClick={() => router.push("/notifications")}>View all</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/notifications")}>
+              View all
+            </DropdownMenuItem>
           </DropdownMenu>
 
           <div className="ml-2">
@@ -327,7 +423,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Bell className="h-4 w-4 mr-2" />
                 Notification Preferences
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/knowledge")}>
+              <DropdownMenuItem onClick={() => router.push("/help")}>
                 <HelpCircle className="h-4 w-4 mr-2" />
                 Help & Support
               </DropdownMenuItem>
@@ -396,6 +492,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     Administration
                   </div>
                   {adminNavItems.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group",
+                          isActive
+                            ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-primary/25"
+                            : "text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-slate-800/50"
+                        )}
+                      >
+                        <item.icon
+                          className={cn(
+                            "h-5 w-5 transition-transform group-hover:scale-110",
+                            isActive && "drop-shadow-sm"
+                          )}
+                        />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {helpNavItems.length > 0 && (
+                <>
+                  <div className="px-4 pt-4 pb-2 text-[11px] uppercase tracking-wide text-muted-foreground/80">
+                    Help & Support
+                  </div>
+                  {helpNavItems.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                     return (
                       <Link

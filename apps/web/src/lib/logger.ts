@@ -1,12 +1,12 @@
 /**
  * Frontend Logger for NexusOps Web
- * 
+ *
  * This logger works in both client and server contexts:
  * - Server-side (SSR/SSG): Uses @nexusops/logging directly
  * - Client-side: Sends logs to /api/logs endpoint
  */
 
-import type { LogLevel, BrowserContext, UserContext } from '@nexusops/logging';
+import type { LogLevel, BrowserContext, UserContext } from "@nexusops/logging";
 
 // ============================================
 // Types
@@ -47,7 +47,7 @@ interface LoggerConfig {
  * Check if we're running on the server
  */
 const isServer = (): boolean => {
-  return typeof window === 'undefined';
+  return typeof window === "undefined";
 };
 
 /**
@@ -55,7 +55,7 @@ const isServer = (): boolean => {
  */
 const getBrowserContext = (): BrowserContext | undefined => {
   if (isServer()) return undefined;
-  
+
   return {
     url: window.location.href,
     userAgent: navigator.userAgent,
@@ -120,18 +120,19 @@ function createLogEntry(
 // Server-side logger (using @nexusops/logging)
 // ============================================
 
-let serverLogger: ReturnType<typeof import('@nexusops/logging').createLogger> | null = null;
+let serverLogger: ReturnType<typeof import("@nexusops/logging").createLogger> | null = null;
 
 function getServerLogger(config: LoggerConfig) {
   if (!serverLogger) {
     // Dynamically import to avoid bundling in client
-    const { createLogger } = require('@nexusops/logging');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createLogger } = require("@nexusops/logging");
     serverLogger = createLogger({
       service: config.service,
       version: config.version,
-      environment: config.environment || 'development',
-      level: config.level || 'info',
-      prettyPrint: process.env['NODE_ENV'] !== 'production',
+      environment: config.environment || "development",
+      level: config.level || "info",
+      prettyPrint: process.env["NODE_ENV"] !== "production",
     });
   }
   return serverLogger;
@@ -145,20 +146,20 @@ async function sendLogToServer(entry: LogEntry, endpoint: string): Promise<void>
   try {
     // Use sendBeacon for better reliability during page unload
     if (navigator.sendBeacon) {
-      const blob = new Blob([JSON.stringify(entry)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(entry)], { type: "application/json" });
       navigator.sendBeacon(endpoint, blob);
     } else {
       // Fallback to fetch
       await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
         keepalive: true,
       });
     }
   } catch (error) {
     // Fallback to console if sending fails
-    console.error('Failed to send log:', error);
+    console.error("Failed to send log:", error);
   }
 }
 
@@ -176,55 +177,55 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const LEVEL_STYLES: Record<LogLevel, string> = {
-  trace: 'color: gray',
-  debug: 'color: cyan',
-  info: 'color: green',
-  warn: 'color: orange',
-  error: 'color: red',
-  fatal: 'color: red; font-weight: bold',
+  trace: "color: gray",
+  debug: "color: cyan",
+  info: "color: green",
+  warn: "color: orange",
+  error: "color: red",
+  fatal: "color: red; font-weight: bold",
 };
 
 function consoleLog(entry: LogEntry, minLevel: LogLevel): void {
   const entryLevel = LOG_LEVELS[entry.level];
   const minLevelValue = LOG_LEVELS[minLevel];
-  
+
   if (entryLevel < minLevelValue) return;
-  
+
   const style = LEVEL_STYLES[entry.level];
   const timestamp = entry.timestamp.slice(11, 23); // HH:mm:ss.SSS
-  
+
   const prefix = `%c[${timestamp}] [${entry.level.toUpperCase()}]`;
-  
+
   const args: unknown[] = [prefix, style];
-  
+
   if (entry.context) {
     args.push(`[${entry.context}]`);
   }
-  
+
   args.push(entry.message);
-  
+
   if (entry.metadata && Object.keys(entry.metadata).length > 0) {
     args.push(entry.metadata);
   }
-  
+
   if (entry.error) {
-    args.push('\nError:', entry.error.name, entry.error.message);
+    args.push("\nError:", entry.error.name, entry.error.message);
     if (entry.error.stack) {
-      args.push('\n' + entry.error.stack);
+      args.push("\n" + entry.error.stack);
     }
   }
-  
+
   // Use appropriate console method
   switch (entry.level) {
-    case 'fatal':
-    case 'error':
+    case "fatal":
+    case "error":
       console.error(...args);
       break;
-    case 'warn':
+    case "warn":
       console.warn(...args);
       break;
-    case 'debug':
-    case 'trace':
+    case "debug":
+    case "trace":
       console.debug(...args);
       break;
     default:
@@ -244,16 +245,16 @@ export class FrontendLogger {
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = {
-      service: 'nexusops-web',
-      version: getEnv('npm_package_version') || '1.0.0',
-      environment: getEnv('NODE_ENV') || 'development',
-      level: (getEnv('LOG_LEVEL') as LogLevel) || 'info',
-      endpoint: '/api/logs',
+      service: "nexusops-web",
+      version: getEnv("npm_package_version") || "1.0.0",
+      environment: getEnv("NODE_ENV") || "development",
+      level: (getEnv("LOG_LEVEL") as LogLevel) || "info",
+      endpoint: "/api/logs",
       ...config,
     };
-    
+
     // Disable logging in test environment
-    if (this.config.environment === 'test') {
+    if (this.config.environment === "test") {
       this.enabled = false;
     }
   }
@@ -292,7 +293,7 @@ export class FrontendLogger {
     }
   ): void {
     if (!this.enabled) return;
-    
+
     const entry = createLogEntry(level, message, this.config, {
       ...options,
       user: this.user,
@@ -303,7 +304,7 @@ export class FrontendLogger {
       // Server-side: use @nexusops/logging
       const serverLogger = getServerLogger(this.config);
       if (serverLogger) {
-        const method = level === 'fatal' ? 'error' : level;
+        const method = level === "fatal" ? "error" : level;
         serverLogger[method](message, {
           ...options?.metadata,
           context: options?.context,
@@ -315,14 +316,14 @@ export class FrontendLogger {
       }
     } else {
       // Client-side: console + send to server
-      consoleLog(entry, this.config.level || 'info');
-      
+      consoleLog(entry, this.config.level || "info");
+
       // Send errors to server (and info if in production)
       if (
         LOG_LEVELS[level] >= LOG_LEVELS.error ||
-        (this.config.environment === 'production' && LOG_LEVELS[level] >= LOG_LEVELS.info)
+        (this.config.environment === "production" && LOG_LEVELS[level] >= LOG_LEVELS.info)
       ) {
-        sendLogToServer(entry, this.config.endpoint || '/api/logs');
+        sendLogToServer(entry, this.config.endpoint || "/api/logs");
       }
     }
   }
@@ -332,30 +333,30 @@ export class FrontendLogger {
   // ============================================
 
   trace(message: string, metadata?: Record<string, unknown>): void {
-    this.log('trace', message, { metadata });
+    this.log("trace", message, { metadata });
   }
 
   debug(message: string, metadata?: Record<string, unknown>): void {
-    this.log('debug', message, { metadata });
+    this.log("debug", message, { metadata });
   }
 
   info(message: string, metadata?: Record<string, unknown>): void {
-    this.log('info', message, { metadata });
+    this.log("info", message, { metadata });
   }
 
   warn(message: string, metadata?: Record<string, unknown>): void {
-    this.log('warn', message, { metadata });
+    this.log("warn", message, { metadata });
   }
 
   error(message: string, error?: Error | unknown, metadata?: Record<string, unknown>): void {
-    this.log('error', message, {
+    this.log("error", message, {
       error: error instanceof Error ? error : error ? new Error(String(error)) : undefined,
       metadata,
     });
   }
 
   fatal(message: string, error?: Error | unknown, metadata?: Record<string, unknown>): void {
-    this.log('fatal', message, {
+    this.log("fatal", message, {
       error: error instanceof Error ? error : error ? new Error(String(error)) : undefined,
       metadata,
     });
@@ -386,7 +387,7 @@ export class FrontendLogger {
   /**
    * Log performance timing
    */
-  logPerformance(metric: string, value: number, unit: string = 'ms'): void {
+  logPerformance(metric: string, value: number, unit: string = "ms"): void {
     this.debug(`Performance: ${metric} = ${value}${unit}`, {
       performance: { metric, value, unit },
     });
@@ -396,7 +397,7 @@ export class FrontendLogger {
    * Log page view
    */
   logPageView(path: string): void {
-    this.info('Page view', { page: path });
+    this.info("Page view", { page: path });
   }
 
   /**
@@ -421,23 +422,23 @@ class ContextLogger {
   }
 
   trace(message: string, metadata?: Record<string, unknown>): void {
-    this.logger.logWithContext('trace', message, this.context, metadata);
+    this.logger.logWithContext("trace", message, this.context, metadata);
   }
 
   debug(message: string, metadata?: Record<string, unknown>): void {
-    this.logger.logWithContext('debug', message, this.context, metadata);
+    this.logger.logWithContext("debug", message, this.context, metadata);
   }
 
   info(message: string, metadata?: Record<string, unknown>): void {
-    this.logger.logWithContext('info', message, this.context, metadata);
+    this.logger.logWithContext("info", message, this.context, metadata);
   }
 
   warn(message: string, metadata?: Record<string, unknown>): void {
-    this.logger.logWithContext('warn', message, this.context, metadata);
+    this.logger.logWithContext("warn", message, this.context, metadata);
   }
 
   error(message: string, error?: Error | unknown, metadata?: Record<string, unknown>): void {
-    this.logger.log('error', message, {
+    this.logger.log("error", message, {
       context: this.context,
       error: error instanceof Error ? error : error ? new Error(String(error)) : undefined,
       metadata,
