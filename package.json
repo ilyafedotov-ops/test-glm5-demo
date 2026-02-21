@@ -21,6 +21,8 @@
     "db:down": "docker-compose down",
     "db:migrate": "pnpm --filter @nexusops/api db:migrate",
     "db:seed": "pnpm --filter @nexusops/api db:seed",
+    "db:seed:demo": "pnpm --filter @nexusops/api db:seed:demo",
+    "demo:record": "node docs/scripts/record-ui-demos.mjs",
     "db:studio": "pnpm --filter @nexusops/api db:studio"
   },
   "keywords": [
@@ -37,11 +39,12 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
+    "@types/node": "^25.2.3",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
-    "@types/node": "^25.2.3",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.2",
+    "playwright": "^1.58.2",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3"
   }
