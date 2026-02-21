@@ -24,7 +24,7 @@ import {
   Home,
   Plus,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -36,9 +36,11 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { API_URL } from "@/lib/api";
-import { APP_NAV_ITEMS } from "@/config/navigation";
+import { NAV_GROUPS, findGroupForPath, ChevronDown } from "@/config/navigation";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
 import type { CommandAction } from "@/components/command-palette";
+
+const NAV_EXPANDED_KEY = "nexusops-nav-expanded";
 
 async function fetchUnreadCount(token: string): Promise<number> {
   const res = await fetch(`${API_URL}/notifications?unread=true`, {
@@ -97,6 +99,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { user, token, isAuthenticated, logout } = useAuthStore();
   const queryClient = useQueryClient();
+
+  // Get initial expanded group from localStorage or active path
+  const getInitialExpandedGroup = useCallback((): string | null => {
+    if (typeof window === "undefined") return null;
+    const stored = localStorage.getItem(NAV_EXPANDED_KEY);
+    if (stored) return stored;
+    return findGroupForPath(pathname);
+  }, [pathname]);
+
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+
+  // Initialize expanded group on mount
+  useEffect(() => {
+    setExpandedGroup(getInitialExpandedGroup());
+  }, [getInitialExpandedGroup]);
+
+  // Auto-expand group when path changes
+  useEffect(() => {
+    const activeGroup = findGroupForPath(pathname);
+    if (activeGroup && activeGroup !== expandedGroup) {
+      setExpandedGroup(activeGroup);
+      localStorage.setItem(NAV_EXPANDED_KEY, activeGroup);
+    }
+  }, [pathname, expandedGroup]);
+
+  const toggleGroup = (groupId: string) => {
+    const newExpanded = expandedGroup === groupId ? null : groupId;
+    setExpandedGroup(newExpanded);
+    if (typeof window !== "undefined") {
+      if (newExpanded) {
+        localStorage.setItem(NAV_EXPANDED_KEY, newExpanded);
+      } else {
+        localStorage.removeItem(NAV_EXPANDED_KEY);
+      }
+    }
+  };
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ["shell-notification-unread", token],
@@ -264,19 +302,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathSegments = pathname.split("/").filter(Boolean);
   const breadcrumbs = pathSegments.map((segment, index) => {
     const href = "/" + pathSegments.slice(0, index + 1).join("/");
-    const label =
-      APP_NAV_ITEMS.find((item) => item.href === href)?.label ||
-      segment.charAt(0).toUpperCase() + segment.slice(1);
+    const label = getItemLabel(href) || segment.charAt(0).toUpperCase() + segment.slice(1);
     return { href, label };
   });
 
-  const mainNavItems = APP_NAV_ITEMS.filter((item) => item.section === "main");
-  const helpNavItems = APP_NAV_ITEMS.filter((item) => item.section === "help");
-  const isAdminUser =
-    !!user &&
-    (user.roles?.some((role) => role.name === "admin") ||
-      user.permissions?.some((permission) => permission.name === "admin:all"));
-  const adminNavItems = isAdminUser ? APP_NAV_ITEMS.filter((item) => item.section === "admin") : [];
+  // Helper to get item label for breadcrumbs
+  const getItemLabel = (href: string): string => {
+    for (const group of NAV_GROUPS) {
+      const item = group.items.find((i) => i.href === href);
+      if (item) return item.label;
+    }
+    return href.split("/").pop() || href;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -454,101 +491,91 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <div className="flex flex-col h-full p-3">
             <nav className="flex-1 space-y-1 overflow-y-auto">
-              {mainNavItems.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const showUnread = item.href === "/notifications" && unreadCount > 0;
+              {NAV_GROUPS.filter((group) => {
+                // Filter out admin group for non-admin users
+                if (group.requiredRole === "admin") {
+                  return (
+                    !!user &&
+                    (user.roles?.some((role) => role.name === "admin") ||
+                      user.permissions?.some((permission) => permission.name === "admin:all"))
+                  );
+                }
+                return true;
+              }).map((group) => {
+                const isExpanded = expandedGroup === group.id;
+                const hasActiveItem = group.items.some(
+                  (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+                );
 
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group",
-                      isActive
-                        ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-primary/25"
-                        : "text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-slate-800/50"
-                    )}
-                  >
-                    <item.icon
+                  <div key={group.id} className="mb-1">
+                    <button
+                      onClick={() => toggleGroup(group.id)}
                       className={cn(
-                        "h-5 w-5 transition-transform group-hover:scale-110",
-                        isActive && "drop-shadow-sm"
+                        "w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group",
+                        isExpanded
+                          ? "bg-white/50 dark:bg-slate-800/50 text-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-white/30 dark:hover:bg-slate-800/30"
                       )}
-                    />
-                    <span>{item.label}</span>
-                    {showUnread && (
-                      <Badge className="ml-auto bg-white/20 text-white border-0 text-xs px-2">
-                        {unreadCount > 99 ? "99+" : unreadCount}
-                      </Badge>
-                    )}
-                  </Link>
+                    >
+                      <group.icon
+                        className={cn(
+                          "h-5 w-5 transition-transform group-hover:scale-110",
+                          hasActiveItem && !isExpanded && "text-violet-500"
+                        )}
+                      />
+                      <span className="flex-1 text-left">{group.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform duration-200",
+                          isExpanded && "rotate-180"
+                        )}
+                      />
+                    </button>
+                    <div
+                      className={cn(
+                        "overflow-hidden transition-all duration-200 ease-in-out",
+                        isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                      )}
+                    >
+                      <div className="pl-4 pt-1 space-y-1">
+                        {group.items.map((item) => {
+                          const isActive =
+                            pathname === item.href || pathname.startsWith(`${item.href}/`);
+                          const showUnread = item.href === "/notifications" && unreadCount > 0;
+
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={cn(
+                                "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 group",
+                                isActive
+                                  ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-primary/25"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-slate-800/50"
+                              )}
+                            >
+                              <item.icon
+                                className={cn(
+                                  "h-4 w-4 transition-transform group-hover:scale-110",
+                                  isActive && "drop-shadow-sm"
+                                )}
+                              />
+                              <span>{item.label}</span>
+                              {showUnread && (
+                                <Badge className="ml-auto bg-white/20 text-white border-0 text-xs px-2">
+                                  {unreadCount > 99 ? "99+" : unreadCount}
+                                </Badge>
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-
-              {adminNavItems.length > 0 && (
-                <>
-                  <div className="px-4 pt-4 pb-2 text-[11px] uppercase tracking-wide text-muted-foreground/80">
-                    Administration
-                  </div>
-                  {adminNavItems.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group",
-                          isActive
-                            ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-primary/25"
-                            : "text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-slate-800/50"
-                        )}
-                      >
-                        <item.icon
-                          className={cn(
-                            "h-5 w-5 transition-transform group-hover:scale-110",
-                            isActive && "drop-shadow-sm"
-                          )}
-                        />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </>
-              )}
-
-              {helpNavItems.length > 0 && (
-                <>
-                  <div className="px-4 pt-4 pb-2 text-[11px] uppercase tracking-wide text-muted-foreground/80">
-                    Help & Support
-                  </div>
-                  {helpNavItems.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group",
-                          isActive
-                            ? "bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-primary/25"
-                            : "text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-slate-800/50"
-                        )}
-                      >
-                        <item.icon
-                          className={cn(
-                            "h-5 w-5 transition-transform group-hover:scale-110",
-                            isActive && "drop-shadow-sm"
-                          )}
-                        />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </>
-              )}
             </nav>
 
             <div className="mt-4">
